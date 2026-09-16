@@ -1,0 +1,53 @@
+/* Renglones del Cuaderno usando Repeating Linear Gradient */
+.notebook-area {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    #94a3b8 27px,
+    #94a3b8 28px
+  );
+  line-height: 28px;
+  background-size: 100% 28px;
+  background-attachment: local;
+  padding-top: 2px;
+  border: none;
+  overflow: hidden;
+}
+
+/* Evitar Zoom automático molesto en iPhone al tocar campos */
+input, textarea {
+  font-size: 16px !important;
+}
+
+/* Previene scroll o gestos raros al firmar con el dedo en iPhone/iPad */
+canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Estilos de Impresión y AirPrint de iOS */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background-color: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .page-container {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.5in !important;
+    min-height: 98vh;
+  }
+
+  input, textarea {
+    border-color: #000 !important;
+  }
+}
