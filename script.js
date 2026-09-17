@@ -1,7 +1,8 @@
 const textarea = document.getElementById('notebook');
 const folioInput = document.getElementById('folio-number');
+const dateInput = document.getElementById('invoice-date');
+const clientNameInput = document.getElementById('client-name');
 
-// 1. Manejo del Folio Persistente
 function getNextFolio() {
   let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num')) || 1;
   const formattedFolio = 'A' + String(currentFolioNum).padStart(10, '0');
@@ -15,34 +16,221 @@ function incrementFolio() {
   localStorage.setItem('ahrco_folio_num', currentFolioNum + 1);
 }
 
-// Escuchar evento de impresión (AirPrint o Impresión Web)
-window.addEventListener('beforeprint', () => {
-  incrementFolio();
-});
-
-window.addEventListener('afterprint', () => {
-  getNextFolio();
-});
-
-// 2. Ajuste de Altura Dinámico
-function adjustHeight() {
-  textarea.style.height = 'auto';
-  textarea.style.height = textarea.scrollHeight + 'px';
+function setTodayDate() {
+  if (dateInput) {
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    dateInput.value = formattedDate;
+  }
 }
 
-textarea.addEventListener('input', adjustHeight);
+// Procesa la captura limpia del elemento html2canvas y retorna la imagen base64
+function obtenerCapturaDataURL() {
+  const elemento = document.getElementById('factura-card');
+  const clearBtn = document.getElementById('clear-signature');
+  if (!elemento) return Promise.resolve('');
+
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  const paddingOriginal = elemento.style.paddingBottom;
+  elemento.style.paddingBottom = '24px';
+
+  const inputs = elemento.querySelectorAll('input, textarea');
+  const reemplazos = [];
+
+  inputs.forEach(input => {
+    const span = document.createElement('div');
+    if (input.tagName.toLowerCase() === 'textarea') {
+      span.className = input.className;
+      span.style.whiteSpace = 'pre-wrap';
+      span.style.minHeight = input.offsetHeight + 'px';
+      span.style.lineHeight = '28px';
+      span.style.paddingTop = '1px';
+      span.textContent = input.value;
+    } else {
+      span.className = input.className;
+      span.style.display = 'inline-block';
+      span.style.paddingBottom = '3px';
+      span.textContent = input.value || '\u00A0';
+    }
+
+    input.style.display = 'none';
+    input.parentNode.insertBefore(span, input);
+    reemplazos.push({ input, span });
+  });
+
+  return html2canvas(elemento, { 
+    scale: 2, 
+    useCORS: true,
+    scrollY: -window.scrollY,
+    windowWidth: document.documentElement.offsetWidth
+  }).then(canvas => {
+    reemplazos.forEach(item => {
+      item.span.remove();
+      item.input.style.display = '';
+    });
+
+    if (clearBtn) clearBtn.style.display = '';
+    elemento.style.paddingBottom = paddingOriginal;
+
+    return canvas.toDataURL('image/png');
+  });
+}
+
+function registrarEmisionFactura(imagenDataURL = '') {
+  const folio = folioInput ? folioInput.value : 'A0000000001';
+  const cliente = (clientNameInput && clientNameInput.value.trim()) ? clientNameInput.value.trim() : 'Sin Nombre';
+  const fecha = dateInput ? dateInput.value : '';
+
+  let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
+  historial.unshift({ folio, cliente, fecha, imagen: imagenDataURL });
+  localStorage.setItem('ahrco_historial', JSON.stringify(historial));
+
+  incrementFolio();
+  getNextFolio();
+  renderHistorial();
+}
+
+function imprimirFactura() {
+  window.print();
+}
+
+window.addEventListener('afterprint', () => {
+  const seImprimio = confirm("¿Se completó la impresión / PDF de la factura correctamente?");
+  if (seImprimio) {
+    obtenerCapturaDataURL().then(imgData => {
+      registrarEmisionFactura(imgData);
+    });
+  }
+});
+
+function generarImagenFactura() {
+  obtenerCapturaDataURL().then(dataURL => {
+    if (!dataURL) return;
+
+    const enlace = document.createElement('a');
+    const folioStr = folioInput ? folioInput.value : 'factura';
+    enlace.download = `Factura_${folioStr}.png`;
+    enlace.href = dataURL;
+    enlace.click();
+
+    setTimeout(() => {
+      const seGuardo = confirm("¿Se descargó correctamente la imagen de la factura?");
+      if (seGuardo) {
+        registrarEmisionFactura(dataURL);
+      }
+    }, 400);
+  });
+}
+
+function abrirHistorial() {
+  const modal = document.getElementById('modal-historial');
+  if (modal) {
+    renderHistorial();
+    modal.classList.remove('hidden');
+  }
+}
+
+function cerrarHistorial() {
+  const modal = document.getElementById('modal-historial');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+function renderHistorial() {
+  const tablaBody = document.getElementById('historial-tabla');
+  if (!tablaBody) return;
+
+  let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
+  tablaBody.innerHTML = '';
+
+  if (historial.length === 0) {
+    tablaBody.innerHTML = `<tr><td colspan="4" class="py-6 px-4 text-center text-gray-400">No hay facturas registradas.</td></tr>`;
+    return;
+  }
+
+  historial.forEach((item, index) => {
+    const fila = document.createElement('tr');
+    fila.className = 'border-b hover:bg-gray-50';
+    fila.innerHTML = `
+      <td class="py-3 px-4 font-bold text-red-700">${item.folio}</td>
+      <td class="py-3 px-4 font-medium">${item.cliente}</td>
+      <td class="py-3 px-4 text-gray-500">${item.fecha}</td>
+      <td class="py-3 px-4 text-center">
+        <button onclick="verCapturaFactura(${index})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded text-xs transition-colors">
+          👁️ Ver
+        </button>
+      </td>
+    `;
+    tablaBody.appendChild(fila);
+  });
+}
+
+function verCapturaFactura(index) {
+  let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
+  const item = historial[index];
+  if (!item || !item.imagen) {
+    alert("No se encontró una captura asociada a esta factura.");
+    return;
+  }
+
+  const visorModal = document.getElementById('modal-visor-factura');
+  const visorImg = document.getElementById('visor-imagen');
+  const visorTitulo = document.getElementById('visor-titulo');
+  const visorDescargar = document.getElementById('visor-descargar');
+
+  if (visorImg && visorModal) {
+    visorImg.src = item.imagen;
+    if (visorTitulo) visorTitulo.textContent = `Factura ${item.folio} - ${item.cliente}`;
+    if (visorDescargar) {
+      visorDescargar.href = item.imagen;
+      visorDescargar.download = `Factura_${item.folio}.png`;
+    }
+    visorModal.classList.remove('hidden');
+  }
+}
+
+function cerrarVisorFactura() {
+  const visorModal = document.getElementById('modal-visor-factura');
+  if (visorModal) visorModal.classList.add('hidden');
+}
+
+function limpiarHistorial() {
+  if (confirm("¿Seguro que deseas borrar el historial de facturas?")) {
+    localStorage.removeItem('ahrco_historial');
+    renderHistorial();
+  }
+}
+
+function adjustHeight() {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  const baseHeight = 420;
+  textarea.style.height = Math.max(baseHeight, textarea.scrollHeight) + 'px';
+}
+
+if (textarea) {
+  textarea.addEventListener('input', adjustHeight);
+}
 
 window.addEventListener('load', () => {
   getNextFolio();
+  setTodayDate();
 
-  if (!textarea.value) {
-    textarea.value = '\n'.repeat(15);
+  if (textarea) {
+    if (!textarea.value) {
+      textarea.value = '\n'.repeat(15);
+    }
+    adjustHeight();
   }
-  adjustHeight();
   initSignaturePad();
 });
 
-// 3. Firma Táctil Compatible con iOS Safari (Soportando Retina Display)
 function initSignaturePad() {
   const canvas = document.getElementById('signature-pad');
   const clearBtn = document.getElementById('clear-signature');
@@ -55,7 +243,6 @@ function initSignaturePad() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const rect = canvas.getBoundingClientRect();
     
-    // Ajuste de resolución para pantallas Retina de iPhone
     canvas.width = rect.width * ratio;
     canvas.height = rect.height * ratio;
     ctx.scale(ratio, ratio);
@@ -86,7 +273,7 @@ function initSignaturePad() {
 
   function draw(e) {
     if (!isDrawing) return;
-    if (e.cancelable) e.preventDefault(); // Previene scroll en iOS Safari
+    if (e.cancelable) e.preventDefault();
     const pos = getPos(e);
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
@@ -96,13 +283,11 @@ function initSignaturePad() {
     isDrawing = false;
   }
 
-  // Eventos de Mouse
   canvas.addEventListener('mousedown', startDrawing);
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mouseup', stopDrawing);
   canvas.addEventListener('mouseleave', stopDrawing);
 
-  // Eventos Táctiles iOS / Android
   canvas.addEventListener('touchstart', (e) => {
     if (e.cancelable) e.preventDefault();
     startDrawing(e);
@@ -115,7 +300,9 @@ function initSignaturePad() {
 
   canvas.addEventListener('touchend', stopDrawing);
 
-  clearBtn.addEventListener('click', () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  });
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+  }
 }
