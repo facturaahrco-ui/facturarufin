@@ -9,7 +9,7 @@ let archivoActual = null;
 let urlActual = null;
 let dataURLActual = null;
 
-// Formato de Teléfono de EE. UU. (XXX) XXX-XXXX
+// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
 if (phoneInput) {
   phoneInput.addEventListener('input', (e) => {
     let input = e.target.value.replace(/\D/g, '');
@@ -29,7 +29,7 @@ if (phoneInput) {
   });
 }
 
-// Formato de Total Monetario
+// AUTO-FORMATO PARA MONTO TOTAL FINANCIERO
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9.]/g, '');
@@ -137,7 +137,13 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-function imprimirFactura() {
+// ARREGLO ÚNICO EN LA FUNCIÓN DE IMPRESIÓN PARA REPETIR EL TRUCO QUE HACE QUE IPAD / SAFARI MUESTRE LA OPCIÓN DE GUARDAR PDF
+async function imprimirFactura() {
+  const canvas = await obtenerCapturaCanvas();
+  if (canvas) {
+    const dataURL = canvas.toDataURL('image/png');
+    registrarEmisionFactura(dataURL);
+  }
   window.print();
 }
 
@@ -218,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCerrar1) btnCerrar1.addEventListener('click', cerrarModal);
   if (btnCerrar2) btnCerrar2.addEventListener('click', cerrarModal);
 
-  // COMPARTIR POR WHATSAPP O OTROS MEDIOS
   if (btnCompartir) {
     btnCompartir.addEventListener('click', () => {
       if (!archivoActual) return;
@@ -234,12 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // GUARDAR EN FOTOS NATIVO (IPAD / IPHONE / ANDROID / PC)
   if (btnGuardar) {
     btnGuardar.addEventListener('click', () => {
       if (!archivoActual || !dataURLActual) return;
 
-      // Invoca el menú nativo de iOS para seleccionar "Guardar Imagen" en la Galería
       if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
         navigator.share({
           title: 'Guardar Factura',
@@ -248,7 +251,6 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(() => cerrarModal())
         .catch(() => {});
       } else {
-        // Método de respaldo para Android o escritorio
         const enlace = document.createElement('a');
         enlace.href = dataURLActual;
         enlace.download = archivoActual ? archivoActual.name : 'Factura.png';
@@ -355,7 +357,7 @@ function limpiarHistorial() {
 
 function adjustHeight() {
   if (!textarea) return;
-  textarea.style.height = '336px'; // Alto fijo exacto para evitar desbordamiento
+  textarea.style.height = '336px';
 }
 
 if (textarea) {
