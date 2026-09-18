@@ -9,7 +9,7 @@ let archivoActual = null;
 let urlActual = null;
 let dataURLActual = null;
 
-// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
+// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS
 if (phoneInput) {
   phoneInput.addEventListener('input', (e) => {
     let input = e.target.value.replace(/\D/g, '');
@@ -29,7 +29,7 @@ if (phoneInput) {
   });
 }
 
-// AUTO-FORMATO PARA MONTO TOTAL FINANCIERO
+// AUTO-FORMATO MONETARIO
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9.]/g, '');
@@ -137,7 +137,6 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-// ARREGLO ÚNICO EN LA FUNCIÓN DE IMPRESIÓN PARA REPETIR EL TRUCO QUE HACE QUE IPAD / SAFARI MUESTRE LA OPCIÓN DE GUARDAR PDF
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (canvas) {
@@ -153,11 +152,12 @@ window.addEventListener('afterprint', () => {
   });
 });
 
+// GENERACIÓN DE IMAGEN CON NOMBRE DINÁMICO SEGÚN FOLIO (ej. Factura_A0000000001.png)
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
 
-  const folioStr = folioInput ? folioInput.value : 'factura';
+  const folioStr = folioInput ? folioInput.value : 'A0000000001';
   const nombre = `Factura_${folioStr}.png`;
 
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));

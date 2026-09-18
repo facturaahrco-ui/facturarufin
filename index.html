@@ -51,7 +51,7 @@
     </div>
   </div>
 
-  <!-- Contenedor con scroll para pantallas pequeñas, rígido en 800px para la captura -->
+  <!-- Contenedor con scroll en celulares -->
   <div class="factura-scroll-wrapper w-full flex justify-center overflow-x-auto">
     <div id="factura-card" class="page-container bg-white shadow-2xl p-8 w-[800px] min-w-[800px] border border-gray-300 text-gray-900 font-sans flex flex-col justify-between">
       
@@ -89,23 +89,23 @@
           </div>
         </header>
 
-        <!-- Datos del Cliente -->
+        <!-- Datos del Cliente (Sin placeholders) -->
         <section class="grid grid-cols-12 gap-y-3 gap-x-4 mb-4 text-sm font-semibold">
           <div class="col-span-7 flex items-end">
             <label class="mr-2 whitespace-nowrap mb-0.5">ADDRESS:</label>
-            <input type="text" id="client-address" maxlength="50" placeholder="Street Address" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
+            <input type="text" id="client-address" maxlength="50" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
           </div>
           <div class="col-span-5 flex items-end">
             <label class="mr-2 whitespace-nowrap mb-0.5">NAME:</label>
-            <input type="text" id="client-name" maxlength="45" placeholder="Full Name" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
+            <input type="text" id="client-name" maxlength="45" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
           </div>
 
           <div class="col-span-7 flex items-end">
-            <input type="text" id="client-address-2" maxlength="50" placeholder="Apt, Suite, City, State ZIP" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
+            <input type="text" id="client-address-2" maxlength="50" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
           </div>
           <div class="col-span-5 flex items-end">
             <label class="mr-2 whitespace-nowrap mb-0.5">PHONE:</label>
-            <input type="text" id="client-phone" maxlength="14" placeholder="(555) 000-0000" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
+            <input type="text" id="client-phone" maxlength="14" class="border-b border-gray-400 w-full focus:outline-none px-2 pb-1 text-gray-800 font-normal truncate" />
           </div>
         </section>
 
@@ -124,7 +124,7 @@
           <div class="flex items-center border-2 border-black rounded px-3 py-1 bg-gray-50 shadow-sm">
             <span class="font-bold text-base mr-3 tracking-wide">TOTAL:</span>
             <span class="font-bold text-base mr-1">$</span>
-            <input type="text" id="invoice-total" placeholder="0.00" maxlength="12" class="w-28 font-bold text-right text-base bg-transparent focus:outline-none border-b border-gray-400 focus:border-black pb-0.5" />
+            <input type="text" id="invoice-total" maxlength="12" class="w-28 font-bold text-right text-base bg-transparent focus:outline-none border-b border-gray-400 focus:border-black pb-0.5" />
           </div>
         </div>
 
@@ -162,7 +162,7 @@
     </div>
   </div>
 
-  <!-- VISTA PREVIA Y ACCIONES -->
+  <!-- VISTA PREVIA -->
   <div id="preview-overlay" class="no-print fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
       <div class="bg-gray-900 text-white p-4 flex justify-between items-center">
@@ -188,7 +188,7 @@
     </div>
   </div>
 
-  <!-- MODAL HISTORIAL -->
+  <!-- HISTORIAL -->
   <div id="modal-historial" class="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
       
