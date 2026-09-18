@@ -42,6 +42,7 @@ if (totalInput) {
     
     const splitParts = value.split('.');
     if (splitParts.length > 2) {
+      splitParts = splitParts.slice(1).join('').substring(0, 2);
       splitParts.length = 2;
     }
 
@@ -219,7 +220,7 @@ function registrarEmisionFactura(folioConsolidado, imagenDataURL = '') {
   renderHistorial();
 }
 
-// PDF OFICIAL (AJUSTADO A PROPORCIÓN EXACTA CARTA SIN EXCEDER TAMAÑO)
+// PDF OFICIAL (DIRECTO AL TOCAR EL BOTÓN, SIN VENTANAS RARAS, AJUSTADO A CARTA)
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -242,13 +243,13 @@ async function imprimirFactura() {
 
   const pageWidth = 8.5;
   const pageHeight = 11.0;
-  const margin = 0.4;
+  const margin = 0.35;
   const availWidth = pageWidth - (margin * 2);
   const availHeight = pageHeight - (margin * 2);
 
   const imgProps = pdf.getImageProperties(imgData);
   const ratio = Math.min(availWidth / imgProps.width, availHeight / imgProps.height);
-  
+
   const pdfWidth = imgProps.width * ratio;
   const pdfHeight = imgProps.height * ratio;
 
@@ -259,7 +260,7 @@ async function imprimirFactura() {
   pdf.save(`Factura_${folioStr}.pdf`);
 }
 
-// PREVIEW DE IMAGEN
+// PREVIEW DE IMAGEN (SOLO MUESTRA VISTA PREVIA, NO QUEMA FOLIO TODAVÍA)
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -365,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // RESTAURADO FLUJO NATIVO DE GUARDAR EN FOTOS/DISPOSITIVO (COMPARTIR PRIMERO, FALLBACK A DESCARGA)
+  // FLUJO ORIGINAL TAL CUAL DE GUARDAR EN FOTO / DISPOSITIVO
   if (btnGuardar) {
     btnGuardar.addEventListener('click', () => {
       if (!archivoActual || !dataURLActual) return;
@@ -487,7 +488,7 @@ async function reimprimirPDFHistorial(index) {
 
   const pageWidth = 8.5;
   const pageHeight = 11.0;
-  const margin = 0.4;
+  const margin = 0.35;
   const availWidth = pageWidth - (margin * 2);
   const availHeight = pageHeight - (margin * 2);
 
