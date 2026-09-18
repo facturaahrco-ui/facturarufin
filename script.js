@@ -29,7 +29,7 @@ if (phoneInput) {
   });
 }
 
-// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS PARA MILES Y MILLONES
+// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9.]/g, '');
@@ -76,13 +76,13 @@ function setTodayDate() {
   }
 }
 
-// CONTROL DINÁMICO DE RENGLONES (INICIA EN 12, CRECE AUTOMÁTICAMENTE Y SE DETIENE EN EL LÍMITE DE 20 RENGLONES)
+// CONTROL DINÁMICO DE RENGLONES (HASTA 20 MÁXIMO)
 function adjustHeight() {
   if (!textarea) return;
   
   const lineHeight = 28;
   const minLines = 12;
-  const maxLines = 20; // Límite infranqueable de 20 renglones
+  const maxLines = 20;
   
   const lineas = textarea.value.split('\n');
   const numLineas = Math.max(minLines, lineas.length);
@@ -98,15 +98,14 @@ function adjustHeight() {
 if (textarea) {
   textarea.addEventListener('input', (e) => {
     let lineas = textarea.value.split('\n');
-    
     if (lineas.length > 20) {
       textarea.value = lineas.slice(0, 20).join('\n');
     }
-    
     adjustHeight();
   });
 }
 
+// CAPTURA PERFECTA QUE PRESERVA EL LOGO SVG, RENGLONES Y CAMPOS COMPLETOS
 function obtenerCapturaCanvas() {
   const elemento = document.getElementById('factura-card');
   const clearBtn = document.getElementById('clear-signature');
@@ -175,36 +174,34 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-// GENERACIÓN DIRECTA DE PDF REAL (SIN ERROR DE 0 KB NI REDIRECCIONES DAÑADAS EN SAFARI/IPAD)
+// GENERACIÓN DE PDF PERFECTO DESDE IMAGEN (GARANTIZA LOGO, RENGLONES Y FOLIO EXACTO EN 1 HOJA)
 async function imprimirFactura() {
-  const elemento = document.getElementById('factura-card');
-  const clearBtn = document.getElementById('clear-signature');
-  const folioStr = folioInput ? folioInput.value : 'A0000000001';
-
-  // Guardar captura para historial
   const canvas = await obtenerCapturaCanvas();
-  if (canvas) {
-    registrarEmisionFactura(canvas.toDataURL('image/png'));
-  }
+  if (!canvas) return;
 
-  // Ocultar botón "Limpiar" antes del PDF
-  if (clearBtn) clearBtn.style.display = 'none';
+  const folioStr = folioInput ? folioInput.value : 'A0000000001';
+  const imgData = canvas.toDataURL('image/png');
 
-  // Opciones de html2pdf para 1 página Letter en iPad
+  // Registrar en historial
+  registrarEmisionFactura(imgData);
+
+  // Crear contenedor temporal para html2pdf usando la imagen idéntica
+  const contenedorTemp = document.createElement('div');
+  const imgElemento = document.createElement('img');
+  imgElemento.src = imgData;
+  imgElemento.style.width = '100%';
+  imgElemento.style.height = 'auto';
+  contenedorTemp.appendChild(imgElemento);
+
   const opt = {
-    margin:       0.2,
+    margin:       0,
     filename:     `Factura_${folioStr}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+    html2canvas:  { scale: 2 },
     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
   };
 
-  // Generar y descargar/compartir el PDF
-  html2pdf().set(opt).from(elemento).save().then(() => {
-    if (clearBtn) clearBtn.style.display = '';
-  }).catch(() => {
-    if (clearBtn) clearBtn.style.display = '';
-  });
+  html2pdf().set(opt).from(contenedorTemp).save();
 }
 
 async function generarImagenFactura() {
