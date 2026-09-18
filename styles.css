@@ -15,7 +15,7 @@
 }
 
 input, textarea {
-  font-size: 16px !important;
+  font-size: 16px !important; /* Evita el zoom automático en Safari iOS */
   padding-bottom: 2px;
 }
 
@@ -25,6 +25,7 @@ canvas {
   user-select: none;
 }
 
+/* Estilos de la Tabla de Historial */
 #historial-tabla tr:nth-child(even) {
   background-color: #f9fafb;
 }
@@ -33,14 +34,17 @@ canvas {
   background-color: #f3f4f6;
 }
 
-/* Configuración de Impresión PDF Exacta */
+/* Configuración de Impresión / Generación de PDF */
 @page {
   size: letter portrait;
   margin: 0;
 }
 
 @media print {
-  .no-print, #modal-historial {
+  /* Ocultar elementos no imprimibles y modales de la vista impresa */
+  .no-print, 
+  #modal-historial, 
+  #modal-visor-factura {
     display: none !important;
   }
   
@@ -50,6 +54,7 @@ canvas {
     margin: 0 !important;
     width: 100% !important;
     height: auto !important;
+    overflow: visible !important;
   }
   
   .page-container {
@@ -63,9 +68,11 @@ canvas {
     box-sizing: border-box !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   input, textarea {
     border-color: #000 !important;
+    background: transparent !important;
   }
 }
