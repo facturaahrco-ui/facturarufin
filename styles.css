@@ -15,7 +15,7 @@
 }
 
 input, textarea {
-  font-size: 16px !important; /* Previene el zoom en Safari iOS/iPadOS */
+  font-size: 16px !important;
   padding-bottom: 2px;
 }
 
@@ -41,7 +41,7 @@ canvas {
   background-color: #f3f4f6;
 }
 
-/* REGULARES DE IMPRESIÓN PDF PARA FORZAR 1 PÁGINA NATIVA EN IPAD Y SAFARI */
+/* REGULACIONES DE IMPRESIÓN PDF PARA FORZAR 1 PÁGINA EN IPAD Y SAFARI */
 @page {
   size: letter portrait;
   margin: 0mm !important;
@@ -83,7 +83,6 @@ canvas {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     
-    /* Escala automática para garantizar 1 hoja sin ajuste manual de escala */
     transform: scale(0.86) !important;
     transform-origin: top center !important;
   }

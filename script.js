@@ -9,7 +9,7 @@ let archivoActual = null;
 let urlActual = null;
 let dataURLActual = null;
 
-// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS
+// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
 if (phoneInput) {
   phoneInput.addEventListener('input', (e) => {
     let input = e.target.value.replace(/\D/g, '');
@@ -29,18 +29,28 @@ if (phoneInput) {
   });
 }
 
-// AUTO-FORMATO MONETARIO
+// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS PARA MILES Y MILLONES
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9.]/g, '');
+    
+    // Garantiza un solo punto decimal
     const parts = value.split('.');
     if (parts.length > 2) {
       value = parts[0] + '.' + parts.slice(1).join('');
     }
+    
+    // Limita decimales a máximo 2 digitos
     if (parts[1] && parts[1].length > 2) {
-      value = parts[0] + '.' + parts[1].substring(0, 2);
+      parts[1] = parts[1].substring(0, 2);
     }
-    e.target.value = value;
+
+    // Formatea con comas la parte entera
+    if (parts[0]) {
+      parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+    }
+
+    e.target.value = parts.join('.');
   });
 }
 
@@ -152,7 +162,6 @@ window.addEventListener('afterprint', () => {
   });
 });
 
-// GENERACIÓN DE IMAGEN CON NOMBRE DINÁMICO SEGÚN FOLIO (ej. Factura_A0000000001.png)
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
