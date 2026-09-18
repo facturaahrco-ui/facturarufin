@@ -99,7 +99,6 @@ if (textarea) {
   textarea.addEventListener('input', (e) => {
     let lineas = textarea.value.split('\n');
     
-    // Si se intentan ingresar más de 20 líneas, bloquea el texto al límite permitido
     if (lineas.length > 20) {
       textarea.value = lineas.slice(0, 20).join('\n');
     }
@@ -176,15 +175,37 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-function imprimirFactura() {
-  window.print();
-}
+// GENERACIÓN DIRECTA DE PDF REAL (SIN ERROR DE 0 KB NI REDIRECCIONES DAÑADAS EN SAFARI/IPAD)
+async function imprimirFactura() {
+  const elemento = document.getElementById('factura-card');
+  const clearBtn = document.getElementById('clear-signature');
+  const folioStr = folioInput ? folioInput.value : 'A0000000001';
 
-window.addEventListener('afterprint', () => {
-  obtenerCapturaCanvas().then(canvas => {
-    if (canvas) registrarEmisionFactura(canvas.toDataURL('image/png'));
+  // Guardar captura para historial
+  const canvas = await obtenerCapturaCanvas();
+  if (canvas) {
+    registrarEmisionFactura(canvas.toDataURL('image/png'));
+  }
+
+  // Ocultar botón "Limpiar" antes del PDF
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  // Opciones de html2pdf para 1 página Letter en iPad
+  const opt = {
+    margin:       0.2,
+    filename:     `Factura_${folioStr}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+  };
+
+  // Generar y descargar/compartir el PDF
+  html2pdf().set(opt).from(elemento).save().then(() => {
+    if (clearBtn) clearBtn.style.display = '';
+  }).catch(() => {
+    if (clearBtn) clearBtn.style.display = '';
   });
-});
+}
 
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();

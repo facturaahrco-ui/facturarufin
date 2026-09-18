@@ -11,6 +11,8 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Librería Oficial para Generar PDFs Reales en iOS / Safari sin error de 0KB -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -39,7 +41,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
         </svg>
-        Imprimir / PDF
+        Descargar PDF / Imprimir
       </button>
 
       <button onclick="abrirHistorial()" class="bg-gray-800 hover:bg-black text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
@@ -128,7 +130,7 @@
           </div>
         </div>
 
-        <!-- Pie de página con Cláusula destacada -->
+        <!-- Pie de página -->
         <footer class="mt-0">
           <div class="text-[13px] font-semibold leading-snug text-gray-900 text-justify mb-2">
             Under the California Mechanic's Lien Law any contractor, subcontractor, laborer, supplier, or other person or entity who provide a service or helps to improve your property but is not paid by his or her work or supplies, has the right to place a lien on your home, and or property where the work was performed and to sue you in court to obtain payment.

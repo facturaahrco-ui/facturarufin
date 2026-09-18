@@ -20,7 +20,7 @@ input, textarea {
   border: none;
   overflow: hidden;
   min-height: 336px; /* 12 renglones iniciales */
-  max-height: 560px; /* Límite máximo de 20 renglones (20 * 28px = 560px) */
+  max-height: 560px; /* Límite máximo de 20 renglones */
   transition: height 0.15s ease-out;
 }
 
@@ -46,7 +46,7 @@ canvas {
   background-color: #f3f4f6;
 }
 
-/* REGULACIONES DE IMPRESIÓN PDF PARA FORZAR 1 PÁGINA EN IPAD Y SAFARI (HASTA 20 RENGLONES) */
+/* REGULACIONES DE IMPRESIÓN Y PDF REAL */
 @page {
   size: letter portrait;
   margin: 0mm !important;
@@ -88,7 +88,6 @@ canvas {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     
-    /* Escala proporcional ajustada para dar espacio a los 20 renglones en 1 sola hoja */
     transform: scale(0.78) !important;
     transform-origin: top center !important;
   }
