@@ -1,3 +1,10 @@
+/* FORZAR TEXTO EN MAYÚSCULAS DE FORMA GLOBAL (Entradas, Renglones y Campos) */
+input, textarea {
+  text-transform: uppercase !important;
+  font-size: 16px !important;
+  padding-bottom: 2px;
+}
+
 /* Renglones del Cuaderno */
 .notebook-area {
   background-image: repeating-linear-gradient(
@@ -12,11 +19,6 @@
   padding-top: 1px;
   border: none;
   overflow: hidden;
-}
-
-input, textarea {
-  font-size: 16px !important;
-  padding-bottom: 2px;
 }
 
 /* Previene desbordamiento de texto */
@@ -90,6 +92,7 @@ canvas {
   input, textarea {
     border-color: #000 !important;
     background: transparent !important;
+    text-transform: uppercase !important;
   }
 
   .notebook-area {
