@@ -42,7 +42,6 @@ if (totalInput) {
     
     const splitParts = value.split('.');
     if (splitParts.length > 2) {
-      splitParts = splitParts.slice(1).join('').substring(0, 2);
       splitParts.length = 2;
     }
 
@@ -220,7 +219,7 @@ function registrarEmisionFactura(folioConsolidado, imagenDataURL = '') {
   renderHistorial();
 }
 
-// PDF OFICIAL (CONSUME 1 FOLIO AL INICIAR LA IMPRESIÓN/DESCARGA)
+// PDF OFICIAL (AJUSTADO A PROPORCIÓN EXACTA CARTA SIN EXCEDER TAMAÑO)
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -243,18 +242,15 @@ async function imprimirFactura() {
 
   const pageWidth = 8.5;
   const pageHeight = 11.0;
-  const margin = 0.25;
+  const margin = 0.4;
   const availWidth = pageWidth - (margin * 2);
   const availHeight = pageHeight - (margin * 2);
 
   const imgProps = pdf.getImageProperties(imgData);
-  let pdfWidth = availWidth;
-  let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-  if (pdfHeight > availHeight) {
-    pdfHeight = availHeight;
-    pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
-  }
+  const ratio = Math.min(availWidth / imgProps.width, availHeight / imgProps.height);
+  
+  const pdfWidth = imgProps.width * ratio;
+  const pdfHeight = imgProps.height * ratio;
 
   const xOffset = margin + (availWidth - pdfWidth) / 2;
   const yOffset = margin;
@@ -263,7 +259,7 @@ async function imprimirFactura() {
   pdf.save(`Factura_${folioStr}.pdf`);
 }
 
-// PREVIEW DE IMAGEN (SOLO MUESTRA VISTA PREVIA, NO QUEMA FOLIO TODAVÍA)
+// PREVIEW DE IMAGEN
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -369,19 +365,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // RESTAURADO FLUJO NATIVO DE GUARDAR EN FOTOS/DISPOSITIVO (COMPARTIR PRIMERO, FALLBACK A DESCARGA)
   if (btnGuardar) {
     btnGuardar.addEventListener('click', () => {
       if (!archivoActual || !dataURLActual) return;
       const folioConsolidado = confirmarEmisionImagenSiNoConfirmada();
 
-      // Forzar descarga directa sin pasar por el selector nativo de compartir
-      const enlace = document.createElement('a');
-      enlace.href = dataURLActual;
-      enlace.download = `Factura_${folioConsolidado}.png`;
-      document.body.appendChild(enlace);
-      enlace.click();
-      enlace.remove();
-      cerrarModal();
+      if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
+        navigator.share({
+          title: `Guardar Factura ${folioConsolidado}`,
+          files: [archivoActual]
+        })
+        .then(() => cerrarModal())
+        .catch(() => {});
+      } else {
+        const enlace = document.createElement('a');
+        enlace.href = dataURLActual;
+        enlace.download = archivoActual ? archivoActual.name : `Factura_${folioConsolidado}.png`;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+        cerrarModal();
+      }
     });
   }
 });
@@ -482,18 +487,15 @@ async function reimprimirPDFHistorial(index) {
 
   const pageWidth = 8.5;
   const pageHeight = 11.0;
-  const margin = 0.25;
+  const margin = 0.4;
   const availWidth = pageWidth - (margin * 2);
   const availHeight = pageHeight - (margin * 2);
 
   const imgProps = pdf.getImageProperties(item.imagen);
-  let pdfWidth = availWidth;
-  let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  const ratio = Math.min(availWidth / imgProps.width, availHeight / imgProps.height);
 
-  if (pdfHeight > availHeight) {
-    pdfHeight = availHeight;
-    pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
-  }
+  const pdfWidth = imgProps.width * ratio;
+  const pdfHeight = imgProps.height * ratio;
 
   const xOffset = margin + (availWidth - pdfWidth) / 2;
   const yOffset = margin;
