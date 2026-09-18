@@ -66,17 +66,30 @@ document.querySelectorAll('input, textarea').forEach(element => {
   });
 });
 
-function getNextFolio() {
-  let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
-  const formattedFolio = 'A' + String(currentFolioNum).padStart(10, '0');
-  if (folioInput && !folioInput.value) {
-    folioInput.value = formattedFolio;
+// CONTROL BLINDADO DE FOLIOS (NO AVANZA AL RECARGAR, SOLO AL EMITIR)
+function inicializarFolioCarga() {
+  if (folioInput) {
+    if (!folioInput.value) {
+      let ultimoEmitido = parseInt(localStorage.getItem('ahrco_ultimo_folio_emitido'), 10) || 0;
+      let numAjustado = ultimoEmitido === 0 ? 1 : ultimoEmitido + 1;
+      folioInput.value = 'A' + String(numAjustado).padStart(10, '0');
+    }
   }
 }
 
-function incrementFolio() {
-  let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
-  localStorage.setItem('ahrco_folio_num', currentFolioNum + 1);
+function consolidarFolioEmitido() {
+  if (!folioInput) return 'A0000000001';
+  const folioActualStr = folioInput.value;
+  const match = folioActualStr.match(/\d+/);
+  const numActual = match ? parseInt(match[0], 10) : 1;
+  
+  const ultimoGuardado = parseInt(localStorage.getItem('ahrco_ultimo_folio_emitido'), 10) || 0;
+  const nuevoUltimo = Math.max(numActual, ultimoGuardado + 1);
+  localStorage.setItem('ahrco_ultimo_folio_emitido', nuevoUltimo);
+  
+  const folioFinal = 'A' + String(nuevoUltimo).padStart(10, '0');
+  folioInput.value = folioFinal;
+  return folioFinal;
 }
 
 function setTodayDate() {
@@ -185,22 +198,23 @@ function obtenerCapturaCanvas() {
 }
 
 function registrarEmisionFactura(imagenDataURL = '') {
-  const folio = folioInput ? folioInput.value : 'A0000000001';
+  const folioConsolidado = consolidarFolioEmitido();
   const cliente = (clientNameInput && clientNameInput.value.trim()) ? clientNameInput.value.trim().toUpperCase() : 'SIN NOMBRE';
   const fecha = dateInput ? dateInput.value : '';
 
   let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
-  const indexExistente = historial.findIndex(item => item.folio === folio);
+  const indexExistente = historial.findIndex(item => item.folio === folioConsolidado);
 
   if (indexExistente !== -1) {
-    historial[indexExistente] = { folio, cliente, fecha, imagen: imagenDataURL };
+    historial[indexExistente] = { folio: folioConsolidado, cliente, fecha, imagen: imagenDataURL };
   } else {
-    historial.unshift({ folio, cliente, fecha, imagen: imagenDataURL });
-    incrementFolio();
+    historial = historial.filter(item => item.folio !== folioConsolidado);
+    historial.unshift({ folio: folioConsolidado, cliente, fecha, imagen: imagenDataURL });
   }
 
   localStorage.setItem('ahrco_historial', JSON.stringify(historial));
   renderHistorial();
+  return folioConsolidado;
 }
 
 // PDF AJUSTADO A 1 SOLA PÁGINA EXACTA Y MULTIPLATAFORMA SEGURO
@@ -208,10 +222,8 @@ async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
 
-  const folioStr = folioInput ? folioInput.value : 'A0000000001';
   const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-  registrarEmisionFactura(imgData);
+  const folioStr = registrarEmisionFactura(imgData);
 
   const { jsPDF } = window.jspdf || {};
   if (!jsPDF) {
@@ -236,7 +248,6 @@ async function imprimirFactura() {
   let pdfWidth = availWidth;
   let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-  // Si sobrepasa la altura útil de una sola página, reescalar al alto máximo permitido
   if (pdfHeight > availHeight) {
     pdfHeight = availHeight;
     pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
@@ -253,14 +264,14 @@ async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
 
-  const folioStr = folioInput ? folioInput.value : 'A0000000001';
-  const nombre = `Factura_${folioStr}.png`;
-
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   if (!blob) return;
 
-  archivoActual = new File([blob], nombre, { type: 'image/png' });
   dataURLActual = canvas.toDataURL('image/png');
+  const folioStr = registrarEmisionFactura(dataURLActual);
+  const nombre = `Factura_${folioStr}.png`;
+
+  archivoActual = new File([blob], nombre, { type: 'image/png' });
 
   if (urlActual) URL.revokeObjectURL(urlActual);
   urlActual = URL.createObjectURL(blob);
@@ -272,15 +283,15 @@ async function generarImagenFactura() {
     previewImg.src = urlActual;
     overlay.classList.remove('hidden');
   }
-
-  registrarEmisionFactura(dataURLActual);
 }
 
 function nuevaFactura() {
   if (confirm("¿Deseas limpiar los datos y comenzar una nueva factura?")) {
-    let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
+    let ultimoEmitido = parseInt(localStorage.getItem('ahrco_ultimo_folio_emitido'), 10) || 0;
+    let siguienteSugerido = ultimoEmitido + 1;
+    
     if (folioInput) {
-      folioInput.value = 'A' + String(currentFolioNum).padStart(10, '0');
+      folioInput.value = 'A' + String(siguienteSugerido).padStart(10, '0');
     }
     
     if (clientNameInput) clientNameInput.value = '';
@@ -452,7 +463,7 @@ function limpiarHistorial() {
 }
 
 window.addEventListener('load', () => {
-  getNextFolio();
+  inicializarFolioCarga();
   setTodayDate();
 
   if (textarea) {
