@@ -8,8 +8,9 @@ const totalInput = document.getElementById('invoice-total');
 let archivoActual = null;
 let urlActual = null;
 let dataURLActual = null;
+let imagenEmitidaConfirmada = false;
 
-// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX (preservando posición si es posible)
+// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
 if (phoneInput) {
   phoneInput.addEventListener('input', (e) => {
     let input = e.target.value.replace(/\D/g, '');
@@ -29,37 +30,31 @@ if (phoneInput) {
   });
 }
 
-// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS (corregido splitParts y decimales)
+// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
-    let cursor = e.target.selectionStart;
-    let oldVal = e.target.value;
-    let value = oldVal.replace(/[^0-9.]/g, '');
+    let value = e.target.value.replace(/[^0-9.]/g, '');
     
     const parts = value.split('.');
     if (parts.length > 2) {
       value = parts[0] + '.' + parts.slice(1).join('');
     }
-
+    
     const splitParts = value.split('.');
-    if (splitParts[1] !== undefined) {
-      splitParts[1] = splitParts[1].substring(0, 2);
+    if (splitParts.length > 2) {
+      splitParts[1] = splitParts.slice(1).join('').substring(0, 2);
+      splitParts.length = 2;
     }
 
     if (splitParts[0]) {
-      // Limpiar comas temporales antes de parsear entero
-      let rawInt = splitParts[0].replace(/,/g, '');
-      if (rawInt !== '') {
-        splitParts[0] = parseInt(rawInt, 10).toLocaleString('en-US');
-      }
+      splitParts[0] = parseInt(splitParts[0].replace(/,/g, ''), 10).toLocaleString('en-US');
     }
 
-    const newVal = splitParts.join(splitParts.length > 1 || value.endsWith('.') ? '.' : '');
-    e.target.value = newVal;
+    e.target.value = splitParts.join('.');
   });
 }
 
-// FORZAR MAYÚSCULAS VÍA JAVASCRIPT EN TODOS LOS CAMPOS (excluyendo total para no romper formato numérico)
+// FORZAR MAYÚSCULAS VÍA JAVASCRIPT EN TODOS LOS CAMPOS
 document.querySelectorAll('input, textarea').forEach(element => {
   element.addEventListener('input', (e) => {
     if (e.target.id !== 'invoice-total') {
@@ -76,17 +71,16 @@ document.querySelectorAll('input, textarea').forEach(element => {
   });
 });
 
-// CONTROL BLINDADO DE FOLIOS (NO AVANZA AL RECARGAR, SOLO AL EMITIR)
+// CONTROL DE FOLIOS: MUESTRA EL SIGUIENTE SIN QUEMARLO AL CARGAR O NUEVA FACTURA
 function inicializarFolioCarga() {
-  if (folioInput) {
-    if (!folioInput.value) {
-      let ultimoEmitido = parseInt(localStorage.getItem('ahrco_ultimo_folio_emitido'), 10) || 0;
-      let numAjustado = ultimoEmitido === 0 ? 1 : ultimoEmitido + 1;
-      folioInput.value = 'A' + String(numAjustado).padStart(10, '0');
-    }
+  if (folioInput && !folioInput.value) {
+    let ultimoEmitido = parseInt(localStorage.getItem('ahrco_ultimo_folio_emitido'), 10) || 0;
+    let numAjustado = ultimoEmitido === 0 ? 1 : ultimoEmitido + 1;
+    folioInput.value = 'A' + String(numAjustado).padStart(10, '0');
   }
 }
 
+// CONSOLIDA Y QUEMA EL FOLIO ÚNICAMENTE AL EMITIR / GUARDAR DEFINITIVO
 function consolidarFolioEmitido() {
   if (!folioInput) return 'A0000000001';
   const folioActualStr = folioInput.value;
@@ -207,8 +201,8 @@ function obtenerCapturaCanvas() {
   });
 }
 
-function registrarEmisionFactura(imagenDataURL = '') {
-  const folioConsolidado = consolidarFolioEmitido();
+// REGISTRAR EN HISTORIAL CON FOLIO CONSOLIDADO
+function registrarEmisionFactura(folioConsolidado, imagenDataURL = '') {
   const cliente = (clientNameInput && clientNameInput.value.trim()) ? clientNameInput.value.trim().toUpperCase() : 'SIN NOMBRE';
   const fecha = dateInput ? dateInput.value : '';
 
@@ -224,16 +218,17 @@ function registrarEmisionFactura(imagenDataURL = '') {
 
   localStorage.setItem('ahrco_historial', JSON.stringify(historial));
   renderHistorial();
-  return folioConsolidado;
 }
 
-// PDF AJUSTADO A 1 SOLA PÁGINA EXACTA Y MULTIPLATAFORMA SEGURO
+// PDF OFICIAL (ConsUME 1 FOLIO AL INICIAR LA IMPRESIÓN/DESCARGA)
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
 
   const imgData = canvas.toDataURL('image/jpeg', 0.95);
-  const folioStr = registrarEmisionFactura(imgData);
+  // Consumir folio y registrar en historial
+  const folioStr = consolidarFolioEmitido();
+  registrarEmisionFactura(folioStr, imgData);
 
   const { jsPDF } = window.jspdf || {};
   if (!jsPDF) {
@@ -250,7 +245,6 @@ async function imprimirFactura() {
   const pageWidth = 8.5;
   const pageHeight = 11.0;
   const margin = 0.25;
-  
   const availWidth = pageWidth - (margin * 2);
   const availHeight = pageHeight - (margin * 2);
 
@@ -270,6 +264,7 @@ async function imprimirFactura() {
   pdf.save(`Factura_${folioStr}.pdf`);
 }
 
+// PREVIEW DE IMAGEN (SOLO MUESTRA VISTA PREVIA, NO QUEMA FOLIO TODAVÍA)
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -278,8 +273,10 @@ async function generarImagenFactura() {
   if (!blob) return;
 
   dataURLActual = canvas.toDataURL('image/png');
-  const folioStr = registrarEmisionFactura(dataURLActual);
-  const nombre = `Factura_${folioStr}.png`;
+  imagenEmitidaConfirmada = false; // Aún no confirmado
+
+  const folioActualVisual = folioInput ? folioInput.value : 'A0000000001';
+  const nombre = `Factura_${folioActualVisual}.png`;
 
   archivoActual = new File([blob], nombre, { type: 'image/png' });
 
@@ -295,6 +292,21 @@ async function generarImagenFactura() {
   }
 }
 
+// CONFIRMA Y QUEMA FOLIO SOLO CUANDO EL USUARIO DA GUARDAR/COMPARTIR EN EL PREVIEW
+function confirmarEmisionImagenSiNoConfirmada() {
+  if (!imagenEmitidaConfirmada) {
+    const folioStr = consolidarFolioEmitido();
+    registrarEmisionFactura(folioStr, dataURLActual);
+    if (archivoActual) {
+      archivoActual = new File([archivoActual], `Factura_${folioStr}.png`, { type: 'image/png' });
+    }
+    imagenEmitidaConfirmada = true;
+    return folioStr;
+  }
+  return folioInput ? folioInput.value : 'A0000000001';
+}
+
+// NUEVA FACTURA
 function nuevaFactura() {
   if (confirm("¿Deseas limpiar los datos y comenzar una nueva factura?")) {
     let ultimoEmitido = parseInt(localStorage.getItem('ahrco_ultimo_folio_emitido'), 10) || 0;
@@ -323,6 +335,7 @@ function nuevaFactura() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
+    imagenEmitidaConfirmada = false;
     setTodayDate();
   }
 }
@@ -344,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCompartir) {
     btnCompartir.addEventListener('click', () => {
       if (!archivoActual) return;
+      confirmarEmisionImagenSiNoConfirmada();
 
       if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
         navigator.share({ title: 'Factura AHRCO', files: [archivoActual] })
@@ -359,10 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnGuardar) {
     btnGuardar.addEventListener('click', () => {
       if (!archivoActual || !dataURLActual) return;
+      const folioConsolidado = confirmarEmisionImagenSiNoConfirmada();
 
       if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
         navigator.share({
-          title: 'Guardar Factura',
+          title: `Guardar Factura ${folioConsolidado}`,
           files: [archivoActual]
         })
         .then(() => cerrarModal())
@@ -370,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         const enlace = document.createElement('a');
         enlace.href = dataURLActual;
-        enlace.download = archivoActual ? archivoActual.name : 'Factura.png';
+        enlace.download = archivoActual ? archivoActual.name : `Factura_${folioConsolidado}.png`;
         document.body.appendChild(enlace);
         enlace.click();
         enlace.remove();
@@ -414,9 +429,12 @@ function renderHistorial() {
       <td class="py-3 px-4 font-bold text-red-700">${item.folio}</td>
       <td class="py-3 px-4 font-medium">${item.cliente}</td>
       <td class="py-3 px-4 text-gray-500">${item.fecha}</td>
-      <td class="py-3 px-4 text-center flex justify-center gap-2">
-        <button onclick="verCapturaFactura(${index})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1 rounded text-xs transition-colors">
-          👁️ Ver
+      <td class="py-3 px-4 text-center flex justify-center gap-1">
+        <button onclick="verCapturaFactura(${index})" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-2 py-1 rounded text-xs transition-colors" title="Ver / Descargar Imagen">
+          👁️ Imagen
+        </button>
+        <button onclick="reimprimirPDFHistorial(${index})" class="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-2 py-1 rounded text-xs transition-colors" title="Imprimir Copia en PDF">
+          📄 PDF
         </button>
         <button onclick="eliminarFactura(${index})" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-2 py-1 rounded text-xs transition-colors" title="Eliminar de historial">
           🗑️
@@ -449,6 +467,48 @@ function verCapturaFactura(index) {
     }
     visorModal.classList.remove('hidden');
   }
+}
+
+async function reimprimirPDFHistorial(index) {
+  let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
+  const item = historial[index];
+  if (!item || !item.imagen) {
+    alert("No se encontró imagen base para generar el PDF de este folio.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) {
+    alert("jsPDF no disponible");
+    return;
+  }
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'in',
+    format: 'letter'
+  });
+
+  const pageWidth = 8.5;
+  const pageHeight = 11.0;
+  const margin = 0.25;
+  const availWidth = pageWidth - (margin * 2);
+  const availHeight = pageHeight - (margin * 2);
+
+  const imgProps = pdf.getImageProperties(item.imagen);
+  let pdfWidth = availWidth;
+  let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  if (pdfHeight > availHeight) {
+    pdfHeight = availHeight;
+    pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+  }
+
+  const xOffset = margin + (availWidth - pdfWidth) / 2;
+  const yOffset = margin;
+
+  pdf.addImage(item.imagen, 'JPEG', xOffset, yOffset, pdfWidth, pdfHeight);
+  pdf.save(`Factura_${item.folio}_CopiaPDF.pdf`);
 }
 
 function eliminarFactura(index) {
@@ -507,12 +567,11 @@ function initSignaturePad() {
 
     canvas.width = rect.width * ratio;
     canvas.height = rect.height * ratio;
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before scaling
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(ratio, ratio);
 
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
     ctx.strokeStyle = '#000000';
 
     if (tempCanvas.width > 0 && tempCanvas.height > 0) {
