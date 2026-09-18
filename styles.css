@@ -1,11 +1,11 @@
-/* FORZAR TEXTO EN MAYÚSCULAS DE FORMA GLOBAL (Entradas, Renglones y Campos) */
+/* FORZAR TEXTO EN MAYÚSCULAS DE FORMA GLOBAL */
 input, textarea {
   text-transform: uppercase !important;
   font-size: 16px !important;
   padding-bottom: 2px;
 }
 
-/* Renglones del Cuaderno */
+/* Renglones del Cuaderno Dinámicos (Permite hasta 20 Renglones) */
 .notebook-area {
   background-image: repeating-linear-gradient(
     transparent,
@@ -19,6 +19,9 @@ input, textarea {
   padding-top: 1px;
   border: none;
   overflow: hidden;
+  min-height: 336px; /* 12 renglones iniciales */
+  max-height: 560px; /* Límite máximo de 20 renglones (20 * 28px = 560px) */
+  transition: height 0.15s ease-out;
 }
 
 /* Previene desbordamiento de texto */
@@ -43,7 +46,7 @@ canvas {
   background-color: #f3f4f6;
 }
 
-/* REGULACIONES DE IMPRESIÓN PDF PARA FORZAR 1 PÁGINA EN IPAD Y SAFARI */
+/* REGULACIONES DE IMPRESIÓN PDF PARA FORZAR 1 PÁGINA EN IPAD Y SAFARI (HASTA 20 RENGLONES) */
 @page {
   size: letter portrait;
   margin: 0mm !important;
@@ -78,14 +81,15 @@ canvas {
     border: none !important;
     width: 100% !important;
     max-width: 100% !important;
-    padding: 0.3in !important;
+    padding: 0.2in !important;
     box-sizing: border-box !important;
     page-break-after: avoid !important;
     page-break-before: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     
-    transform: scale(0.86) !important;
+    /* Escala proporcional ajustada para dar espacio a los 20 renglones en 1 sola hoja */
+    transform: scale(0.78) !important;
     transform-origin: top center !important;
   }
 
@@ -96,6 +100,6 @@ canvas {
   }
 
   .notebook-area {
-    max-height: 336px !important;
+    max-height: 560px !important;
   }
 }

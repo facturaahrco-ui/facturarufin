@@ -34,18 +34,15 @@ if (totalInput) {
   totalInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9.]/g, '');
     
-    // Garantiza un solo punto decimal
     const parts = value.split('.');
     if (parts.length > 2) {
       value = parts[0] + '.' + parts.slice(1).join('');
     }
     
-    // Limita decimales a máximo 2 digitos
     if (parts[1] && parts[1].length > 2) {
       parts[1] = parts[1].substring(0, 2);
     }
 
-    // Formatea con comas la parte entera
     if (parts[0]) {
       parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
     }
@@ -77,6 +74,38 @@ function setTodayDate() {
     });
     dateInput.value = formattedDate;
   }
+}
+
+// CONTROL DINÁMICO DE RENGLONES (INICIA EN 12, CRECE AUTOMÁTICAMENTE Y SE DETIENE EN EL LÍMITE DE 20 RENGLONES)
+function adjustHeight() {
+  if (!textarea) return;
+  
+  const lineHeight = 28;
+  const minLines = 12;
+  const maxLines = 20; // Límite infranqueable de 20 renglones
+  
+  const lineas = textarea.value.split('\n');
+  const numLineas = Math.max(minLines, lineas.length);
+
+  let targetLines = numLineas;
+  if (targetLines > maxLines) {
+    targetLines = maxLines;
+  }
+
+  textarea.style.height = (targetLines * lineHeight) + 'px';
+}
+
+if (textarea) {
+  textarea.addEventListener('input', (e) => {
+    let lineas = textarea.value.split('\n');
+    
+    // Si se intentan ingresar más de 20 líneas, bloquea el texto al límite permitido
+    if (lineas.length > 20) {
+      textarea.value = lineas.slice(0, 20).join('\n');
+    }
+    
+    adjustHeight();
+  });
 }
 
 function obtenerCapturaCanvas() {
@@ -147,12 +176,7 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-async function imprimirFactura() {
-  const canvas = await obtenerCapturaCanvas();
-  if (canvas) {
-    const dataURL = canvas.toDataURL('image/png');
-    registrarEmisionFactura(dataURL);
-  }
+function imprimirFactura() {
   window.print();
 }
 
@@ -205,7 +229,7 @@ function nuevaFactura() {
     if (totalInput) totalInput.value = '';
 
     if (textarea) {
-      textarea.value = '\n'.repeat(12);
+      textarea.value = '\n'.repeat(11);
       adjustHeight();
     }
 
@@ -364,22 +388,13 @@ function limpiarHistorial() {
   }
 }
 
-function adjustHeight() {
-  if (!textarea) return;
-  textarea.style.height = '336px';
-}
-
-if (textarea) {
-  textarea.addEventListener('input', adjustHeight);
-}
-
 window.addEventListener('load', () => {
   getNextFolio();
   setTodayDate();
 
   if (textarea) {
     if (!textarea.value) {
-      textarea.value = '\n'.repeat(12);
+      textarea.value = '\n'.repeat(11);
     }
     adjustHeight();
   }
