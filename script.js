@@ -9,7 +9,7 @@ let archivoActual = null;
 let urlActual = null;
 let dataURLActual = null;
 
-// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
+// Formato de Teléfono de EE. UU. (XXX) XXX-XXXX
 if (phoneInput) {
   phoneInput.addEventListener('input', (e) => {
     let input = e.target.value.replace(/\D/g, '');
@@ -29,7 +29,7 @@ if (phoneInput) {
   });
 }
 
-// AUTO-FORMATO PARA MONTO TOTAL FINANCIERO
+// Formato de Total Monetario
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
     let value = e.target.value.replace(/[^0-9.]/g, '');
@@ -190,7 +190,7 @@ function nuevaFactura() {
     if (totalInput) totalInput.value = '';
 
     if (textarea) {
-      textarea.value = '\n'.repeat(13);
+      textarea.value = '\n'.repeat(12);
       adjustHeight();
     }
 
@@ -218,41 +218,45 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCerrar1) btnCerrar1.addEventListener('click', cerrarModal);
   if (btnCerrar2) btnCerrar2.addEventListener('click', cerrarModal);
 
+  // COMPARTIR POR WHATSAPP O OTROS MEDIOS
   if (btnCompartir) {
     btnCompartir.addEventListener('click', () => {
       if (!archivoActual) return;
 
       if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
         navigator.share({ title: 'Factura AHRCO', files: [archivoActual] })
-          .then(() => {
-            cerrarModal();
-          })
+          .then(() => cerrarModal())
           .catch(() => {});
       } else {
-        alert("Tu navegador no permite compartir archivos directamente. Usa 'Guardar en Fotos' y luego adjúntala en WhatsApp.");
+        alert("Tu navegador no permite compartir archivos directamente.");
         cerrarModal();
       }
     });
   }
 
+  // GUARDAR EN FOTOS NATIVO (IPAD / IPHONE / ANDROID / PC)
   if (btnGuardar) {
     btnGuardar.addEventListener('click', () => {
-      if (!urlActual) return;
+      if (!archivoActual || !dataURLActual) return;
 
-      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-      if (esIOS) {
-        alert("Mantén presionada la imagen de arriba y elige 'Agregar a Fotos' o 'Guardar Imagen'.");
+      // Invoca el menú nativo de iOS para seleccionar "Guardar Imagen" en la Galería
+      if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
+        navigator.share({
+          title: 'Guardar Factura',
+          files: [archivoActual]
+        })
+        .then(() => cerrarModal())
+        .catch(() => {});
       } else {
+        // Método de respaldo para Android o escritorio
         const enlace = document.createElement('a');
-        enlace.href = urlActual;
+        enlace.href = dataURLActual;
         enlace.download = archivoActual ? archivoActual.name : 'Factura.png';
         document.body.appendChild(enlace);
         enlace.click();
         enlace.remove();
+        cerrarModal();
       }
-
-      cerrarModal();
     });
   }
 });
@@ -351,7 +355,7 @@ function limpiarHistorial() {
 
 function adjustHeight() {
   if (!textarea) return;
-  textarea.style.height = '364px'; // 13 renglones exactos que entran en 1 hoja sin empujar la firma
+  textarea.style.height = '336px'; // Alto fijo exacto para evitar desbordamiento
 }
 
 if (textarea) {
@@ -364,7 +368,7 @@ window.addEventListener('load', () => {
 
   if (textarea) {
     if (!textarea.value) {
-      textarea.value = '\n'.repeat(13);
+      textarea.value = '\n'.repeat(12);
     }
     adjustHeight();
   }
