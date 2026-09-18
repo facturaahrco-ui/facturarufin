@@ -220,7 +220,7 @@ function registrarEmisionFactura(folioConsolidado, imagenDataURL = '') {
   renderHistorial();
 }
 
-// PDF OFICIAL (DIRECTO AL TOCAR EL BOTÓN, SIN VENTANAS RARAS, AJUSTADO A CARTA)
+// PDF OFICIAL (COMPARTIR/GUARDAR NATIVO EN MÓVIL/IPAD AL TOCAR + DESCARGA DIRECTA PC)
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -257,7 +257,28 @@ async function imprimirFactura() {
   const yOffset = margin;
 
   pdf.addImage(imgData, 'JPEG', xOffset, yOffset, pdfWidth, pdfHeight);
-  pdf.save(`Factura_${folioStr}.pdf`);
+
+  const nombreArchivo = `Factura_${folioStr}.pdf`;
+
+  if (navigator.share || navigator.canShare) {
+    try {
+      const pdfBlob = pdf.output('blob');
+      const archivoPDF = new File([pdfBlob], nombreArchivo, { type: 'application/pdf' });
+
+      if (navigator.canShare && navigator.canShare({ files: [archivoPDF] })) {
+        await navigator.share({
+          title: `Factura ${folioStr}`,
+          text: `Factura correspondiente al folio ${folioStr}`,
+          files: [archivoPDF]
+        });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+
+  pdf.save(nombreArchivo);
 }
 
 // PREVIEW DE IMAGEN (SOLO MUESTRA VISTA PREVIA, NO QUEMA FOLIO TODAVÍA)
