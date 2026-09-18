@@ -9,7 +9,7 @@ let archivoActual = null;
 let urlActual = null;
 let dataURLActual = null;
 
-// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
+// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX (preservando posición si es posible)
 if (phoneInput) {
   phoneInput.addEventListener('input', (e) => {
     let input = e.target.value.replace(/\D/g, '');
@@ -29,38 +29,48 @@ if (phoneInput) {
   });
 }
 
-// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS
+// AUTO-FORMATO MONETARIO CON COMAS AUTOMÁTICAS (corregido splitParts y decimales)
 if (totalInput) {
   totalInput.addEventListener('input', (e) => {
-    let value = e.target.value.replace(/[^0-9.]/g, '');
+    let cursor = e.target.selectionStart;
+    let oldVal = e.target.value;
+    let value = oldVal.replace(/[^0-9.]/g, '');
     
     const parts = value.split('.');
     if (parts.length > 2) {
       value = parts[0] + '.' + parts.slice(1).join('');
     }
-    
+
     const splitParts = value.split('.');
-    if (splitParts && splitParts.length > 2) {
-      splitParts = splitParts.substring(0, 2);
+    if (splitParts[1] !== undefined) {
+      splitParts[1] = splitParts[1].substring(0, 2);
     }
 
     if (splitParts[0]) {
-      splitParts[0] = parseInt(splitParts[0], 10).toLocaleString('en-US');
+      // Limpiar comas temporales antes de parsear entero
+      let rawInt = splitParts[0].replace(/,/g, '');
+      if (rawInt !== '') {
+        splitParts[0] = parseInt(rawInt, 10).toLocaleString('en-US');
+      }
     }
 
-    e.target.value = splitParts.join('.');
+    const newVal = splitParts.join(splitParts.length > 1 || value.endsWith('.') ? '.' : '');
+    e.target.value = newVal;
   });
 }
 
-// FORZAR MAYÚSCULAS VÍA JAVASCRIPT EN TODOS LOS CAMPOS
+// FORZAR MAYÚSCULAS VÍA JAVASCRIPT EN TODOS LOS CAMPOS (excluyendo total para no romper formato numérico)
 document.querySelectorAll('input, textarea').forEach(element => {
   element.addEventListener('input', (e) => {
     if (e.target.id !== 'invoice-total') {
       const start = e.target.selectionStart;
       const end = e.target.selectionEnd;
-      e.target.value = e.target.value.toUpperCase();
-      if (start !== null && end !== null) {
-        e.target.setSelectionRange(start, end);
+      const upperVal = e.target.value.toUpperCase();
+      if (e.target.value !== upperVal) {
+        e.target.value = upperVal;
+        if (start !== null && end !== null) {
+          e.target.setSelectionRange(start, end);
+        }
       }
     }
   });
@@ -124,7 +134,7 @@ function adjustHeight() {
 }
 
 if (textarea) {
-  textarea.addEventListener('input', (e) => {
+  textarea.addEventListener('input', () => {
     let lineas = textarea.value.split('\n');
     if (lineas.length > 20) {
       textarea.value = lineas.slice(0, 20).join('\n');
@@ -234,7 +244,7 @@ async function imprimirFactura() {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'in',
-    format: 'letter' // 8.5 x 11 pulgadas
+    format: 'letter'
   });
 
   const pageWidth = 8.5;
@@ -497,10 +507,12 @@ function initSignaturePad() {
 
     canvas.width = rect.width * ratio;
     canvas.height = rect.height * ratio;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before scaling
     ctx.scale(ratio, ratio);
 
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = '#000000';
 
     if (tempCanvas.width > 0 && tempCanvas.height > 0) {
@@ -514,7 +526,7 @@ function initSignaturePad() {
 
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
-    const touch = (e.touches && e.touches.length > 0) ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : e);
+    const touch = (e.touches && e.touches.length > 0) ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : e);
     return {
       x: touch.clientX - rect.left,
       y: touch.clientY - rect.top
