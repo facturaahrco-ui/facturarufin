@@ -3,6 +3,9 @@ const folioInput = document.getElementById('folio-number');
 const dateInput = document.getElementById('invoice-date');
 const clientNameInput = document.getElementById('client-name');
 
+let archivoActual = null;
+let urlActual = null;
+
 function getNextFolio() {
   let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
   const formattedFolio = 'A' + String(currentFolioNum).padStart(10, '0');
@@ -28,11 +31,11 @@ function setTodayDate() {
   }
 }
 
-// Procesa la captura limpia del elemento html2canvas y retorna la imagen base64
-function obtenerCapturaDataURL() {
+// Procesa la captura limpia del elemento html2canvas
+function obtenerCapturaCanvas() {
   const elemento = document.getElementById('factura-card');
   const clearBtn = document.getElementById('clear-signature');
-  if (!elemento) return Promise.resolve('');
+  if (!elemento) return Promise.resolve(null);
 
   if (clearBtn) clearBtn.style.display = 'none';
 
@@ -77,7 +80,7 @@ function obtenerCapturaDataURL() {
     if (clearBtn) clearBtn.style.display = '';
     elemento.style.paddingBottom = paddingOriginal;
 
-    return canvas.toDataURL('image/png');
+    return canvas;
   });
 }
 
@@ -102,44 +105,88 @@ function imprimirFactura() {
 window.addEventListener('afterprint', () => {
   const seImprimio = confirm("¿Se completó la impresión / PDF de la factura correctamente?");
   if (seImprimio) {
-    obtenerCapturaDataURL().then(imgData => {
-      registrarEmisionFactura(imgData);
+    obtenerCapturaCanvas().then(canvas => {
+      if (canvas) registrarEmisionFactura(canvas.toDataURL('image/png'));
     });
   }
 });
 
-function generarImagenFactura() {
-  obtenerCapturaDataURL().then(dataURL => {
-    if (!dataURL) return;
+// GENERACIÓN DE IMAGEN CON VISTA PREVIA FLOTANTE (COMPATIBLE CON IPHONE Y ANDROID)
+async function generarImagenFactura() {
+  const canvas = await obtenerCapturaCanvas();
+  if (!canvas) return;
 
-    const folioStr = folioInput ? folioInput.value : 'factura';
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const folioStr = folioInput ? folioInput.value : 'factura';
+  const nombre = `Factura_${folioStr}.png`;
 
-    if (isIOS) {
-      // Abre la imagen en una pestaña nueva para iOS Safari (deja presionado para guardar)
-      const nuevaVentana = window.open();
-      if (nuevaVentana) {
-        nuevaVentana.document.write(`<img src="${dataURL}" alt="Factura ${folioStr}" style="max-width:100%;height:auto;"/>`);
-        nuevaVentana.document.title = `Factura_${folioStr}`;
-      } else {
-        alert("Por favor habilita las ventanas emergentes (pop-ups) para descargar en iOS.");
-      }
-    } else {
-      // Descarga directa tradicional para Android / Escritorio
-      const enlace = document.createElement('a');
-      enlace.download = `Factura_${folioStr}.png`;
-      enlace.href = dataURL;
-      enlace.click();
-    }
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) return;
 
-    setTimeout(() => {
-      const seGuardo = confirm("¿Se descargó correctamente la imagen de la factura?");
-      if (seGuardo) {
-        registrarEmisionFactura(dataURL);
-      }
-    }, 500);
-  });
+  archivoActual = new File([blob], nombre, { type: 'image/png' });
+
+  if (urlActual) URL.revokeObjectURL(urlActual);
+  urlActual = URL.createObjectURL(blob);
+
+  const previewImg = document.getElementById('preview-img');
+  const overlay = document.getElementById('preview-overlay');
+
+  if (previewImg && overlay) {
+    previewImg.src = urlActual;
+    overlay.classList.remove('hidden');
+  }
+
+  // Registrar emisión en historial al generar
+  registrarEmisionFactura(canvas.toDataURL('image/png'));
 }
+
+// BOTONES DEL MODAL DE VISTA PREVIA
+document.addEventListener('DOMContentLoaded', () => {
+  const btnGuardar = document.getElementById('btn-guardar-fotos');
+  const btnCompartir = document.getElementById('btn-compartir-wa');
+  const btnCerrar1 = document.getElementById('btn-cerrar-preview');
+  const btnCerrar2 = document.getElementById('btn-cerrar-preview-2');
+  const overlay = document.getElementById('preview-overlay');
+
+  const cerrarModal = () => {
+    if (overlay) overlay.classList.add('hidden');
+  };
+
+  if (btnCerrar1) btnCerrar1.addEventListener('click', cerrarModal);
+  if (btnCerrar2) btnCerrar2.addEventListener('click', cerrarModal);
+
+  // BOTÓN COMPARTIR
+  if (btnCompartir) {
+    btnCompartir.addEventListener('click', () => {
+      if (!archivoActual) return;
+
+      if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
+        navigator.share({ title: 'Factura AHRCO', files: [archivoActual] }).catch(() => {});
+      } else {
+        alert("Tu navegador no permite compartir archivos directamente. Usa 'Guardar en Fotos' y luego adjúntala en WhatsApp.");
+      }
+    });
+  }
+
+  // BOTÓN GUARDAR EN FOTOS
+  if (btnGuardar) {
+    btnGuardar.addEventListener('click', () => {
+      if (!urlActual) return;
+
+      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+      if (esIOS) {
+        alert("Mantén presionada la imagen de arriba y elige 'Agregar a Fotos' o 'Guardar Imagen'.");
+      } else {
+        const enlace = document.createElement('a');
+        enlace.href = urlActual;
+        enlace.download = archivoActual ? archivoActual.name : 'Factura.png';
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+      }
+    });
+  }
+});
 
 function abrirHistorial() {
   const modal = document.getElementById('modal-historial');
@@ -262,7 +309,7 @@ function initSignaturePad() {
   const clearBtn = document.getElementById('clear-signature');
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   let isDrawing = false;
 
   function resizeCanvas() {
@@ -271,7 +318,6 @@ function initSignaturePad() {
 
     if (rect.width === 0 || rect.height === 0) return;
 
-    // Guarda el trazo existente en un canvas temporal antes del cambio de tamaño
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
@@ -286,7 +332,6 @@ function initSignaturePad() {
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#000000';
 
-    // Restaura la firma dibujada
     if (tempCanvas.width > 0 && tempCanvas.height > 0) {
       ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width / ratio, tempCanvas.height / ratio);
     }

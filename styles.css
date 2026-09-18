@@ -15,7 +15,7 @@
 }
 
 input, textarea {
-  font-size: 16px !important; /* Evita el zoom automático en Safari iOS */
+  font-size: 16px !important; /* Previene el zoom automático en Safari iOS */
   padding-bottom: 2px;
 }
 
@@ -41,10 +41,10 @@ canvas {
 }
 
 @media print {
-  /* Ocultar elementos no imprimibles y modales de la vista impresa */
   .no-print, 
   #modal-historial, 
-  #modal-visor-factura {
+  #modal-visor-factura,
+  #preview-overlay {
     display: none !important;
   }
   
