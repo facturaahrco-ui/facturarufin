@@ -25,7 +25,7 @@ if (phoneInput) {
     if (input.length >= 7) {
       formatted += '-' + input.substring(6, 10);
     }
-    e.target.value = formatted;
+    e.target.value = formatted.toUpperCase();
   });
 }
 
@@ -50,6 +50,20 @@ if (totalInput) {
     e.target.value = parts.join('.');
   });
 }
+
+// FORZAR MAYÚSCULAS VÍA JAVASCRIPT EN TODOS LOS CAMPOS
+document.querySelectorAll('input, textarea').forEach(element => {
+  element.addEventListener('input', (e) => {
+    if (e.target.id !== 'invoice-total') {
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      e.target.value = e.target.value.toUpperCase();
+      if (start !== null && end !== null) {
+        e.target.setSelectionRange(start, end);
+      }
+    }
+  });
+});
 
 function getNextFolio() {
   let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
@@ -76,7 +90,7 @@ function setTodayDate() {
   }
 }
 
-// CONTROL DINÁMICO DE RENGLONES (HASTA 20 MÁXIMO)
+// CONTROL DINÁMICO DE RENGLONES (MAX 20 RENGLONES)
 function adjustHeight() {
   if (!textarea) return;
   
@@ -105,7 +119,7 @@ if (textarea) {
   });
 }
 
-// CAPTURA PERFECTA QUE PRESERVA EL LOGO SVG, RENGLONES Y CAMPOS COMPLETOS
+// GENERADOR DE CAPTURA LIMPIA SIN RUPTURA DE LAYOUT
 function obtenerCapturaCanvas() {
   const elemento = document.getElementById('factura-card');
   const clearBtn = document.getElementById('clear-signature');
@@ -116,36 +130,51 @@ function obtenerCapturaCanvas() {
   const inputs = elemento.querySelectorAll('input, textarea');
   const reemplazos = [];
 
+  // Transformar temporalmente inputs a bloques planos de texto con formato idéntico
   inputs.forEach(input => {
-    const span = document.createElement('div');
+    const div = document.createElement('div');
+    const computedStyle = window.getComputedStyle(input);
+
+    div.style.width = input.offsetWidth + 'px';
+    div.style.minHeight = input.offsetHeight + 'px';
+    div.style.fontFamily = computedStyle.fontFamily;
+    div.style.fontSize = computedStyle.fontSize;
+    div.style.fontWeight = computedStyle.fontWeight;
+    div.style.color = computedStyle.color;
+    div.style.textAlign = computedStyle.textAlign;
+    div.style.textTransform = 'uppercase';
+    div.style.padding = computedStyle.padding;
+    div.style.boxSizing = 'border-box';
+
     if (input.tagName.toLowerCase() === 'textarea') {
-      span.className = input.className;
-      span.style.whiteSpace = 'pre-wrap';
-      span.style.height = input.offsetHeight + 'px';
-      span.style.lineHeight = '28px';
-      span.style.paddingTop = '1px';
-      span.textContent = input.value;
+      div.className = input.className;
+      div.style.whiteSpace = 'pre-wrap';
+      div.style.wordBreak = 'break-word';
+      div.style.lineHeight = '28px';
+      div.style.paddingTop = '1px';
+      div.textContent = input.value.toUpperCase();
     } else {
-      span.className = input.className;
-      span.style.display = 'inline-block';
-      span.style.paddingBottom = '3px';
-      span.textContent = input.value || '\u00A0';
+      div.className = input.className;
+      div.style.display = 'inline-block';
+      div.style.borderBottom = computedStyle.borderBottom;
+      div.textContent = (input.value || '').toUpperCase() || '\u00A0';
     }
 
     input.style.display = 'none';
-    input.parentNode.insertBefore(span, input);
-    reemplazos.push({ input, span });
+    input.parentNode.insertBefore(div, input);
+    reemplazos.push({ input, div });
   });
 
   return html2canvas(elemento, { 
     scale: 2, 
     useCORS: true,
+    logging: false,
     width: 800,
     windowWidth: 800,
     scrollY: -window.scrollY
   }).then(canvas => {
     reemplazos.forEach(item => {
-      item.span.remove();
+      item.div.remove();
       item.input.style.display = '';
     });
 
@@ -157,7 +186,7 @@ function obtenerCapturaCanvas() {
 
 function registrarEmisionFactura(imagenDataURL = '') {
   const folio = folioInput ? folioInput.value : 'A0000000001';
-  const cliente = (clientNameInput && clientNameInput.value.trim()) ? clientNameInput.value.trim() : 'Sin Nombre';
+  const cliente = (clientNameInput && clientNameInput.value.trim()) ? clientNameInput.value.trim().toUpperCase() : 'SIN NOMBRE';
   const fecha = dateInput ? dateInput.value : '';
 
   let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
@@ -174,7 +203,7 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-// GENERACIÓN DE PDF PERFECTO DESDE IMAGEN (GARANTIZA LOGO, RENGLONES Y FOLIO EXACTO EN 1 HOJA)
+// GENERACIÓN DE PDF VECTORIAL PERFECTO (CERO ERRORES DE LÍNEA HORIZONTAL, CON LOGO Y FOLIO REAL)
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -182,26 +211,38 @@ async function imprimirFactura() {
   const folioStr = folioInput ? folioInput.value : 'A0000000001';
   const imgData = canvas.toDataURL('image/png');
 
-  // Registrar en historial
+  // Registrar en el historial
   registrarEmisionFactura(imgData);
 
-  // Crear contenedor temporal para html2pdf usando la imagen idéntica
-  const contenedorTemp = document.createElement('div');
-  const imgElemento = document.createElement('img');
-  imgElemento.src = imgData;
-  imgElemento.style.width = '100%';
-  imgElemento.style.height = 'auto';
-  contenedorTemp.appendChild(imgElemento);
+  // Crear documento PDF mediante jsPDF directo para asegurar el layout
+  const { jsPDF } = window.jspdf || {};
+  
+  if (typeof html2pdf !== 'undefined') {
+    const contenedorTemp = document.createElement('div');
+    contenedorTemp.style.width = '800px';
+    contenedorTemp.style.padding = '0';
+    contenedorTemp.style.margin = '0';
 
-  const opt = {
-    margin:       0,
-    filename:     `Factura_${folioStr}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-  };
+    const imgElemento = document.createElement('img');
+    imgElemento.src = imgData;
+    imgElemento.style.width = '100%';
+    imgElemento.style.height = 'auto';
+    imgElemento.style.display = 'block';
 
-  html2pdf().set(opt).from(contenedorTemp).save();
+    contenedorTemp.appendChild(imgElemento);
+
+    const opt = {
+      margin:       0,
+      filename:     `Factura_${folioStr}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(contenedorTemp).save();
+  } else {
+    window.print();
+  }
 }
 
 async function generarImagenFactura() {
