@@ -190,7 +190,7 @@ function nuevaFactura() {
     if (totalInput) totalInput.value = '';
 
     if (textarea) {
-      textarea.value = '\n'.repeat(14);
+      textarea.value = '\n'.repeat(13);
       adjustHeight();
     }
 
@@ -351,7 +351,7 @@ function limpiarHistorial() {
 
 function adjustHeight() {
   if (!textarea) return;
-  textarea.style.height = '392px'; // Mantiene exactamente 14 renglones estándar sin estirar el contenedor en PDF o captura
+  textarea.style.height = '364px'; // 13 renglones exactos que entran en 1 hoja sin empujar la firma
 }
 
 if (textarea) {
@@ -364,7 +364,7 @@ window.addEventListener('load', () => {
 
   if (textarea) {
     if (!textarea.value) {
-      textarea.value = '\n'.repeat(14);
+      textarea.value = '\n'.repeat(13);
     }
     adjustHeight();
   }
