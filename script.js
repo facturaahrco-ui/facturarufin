@@ -42,7 +42,7 @@ if (totalInput) {
     
     const splitParts = value.split('.');
     if (splitParts.length > 2) {
-      splitParts[1] = splitParts.slice(1).join('').substring(0, 2);
+      splitParts = splitParts.slice(1).join('').substring(0, 2);
       splitParts.length = 2;
     }
 
@@ -220,13 +220,12 @@ function registrarEmisionFactura(folioConsolidado, imagenDataURL = '') {
   renderHistorial();
 }
 
-// PDF OFICIAL (ConsUME 1 FOLIO AL INICIAR LA IMPRESIÓN/DESCARGA)
+// PDF OFICIAL (CONSUME 1 FOLIO AL INICIAR LA IMPRESIÓN/DESCARGA)
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
 
   const imgData = canvas.toDataURL('image/jpeg', 0.95);
-  // Consumir folio y registrar en historial
   const folioStr = consolidarFolioEmitido();
   registrarEmisionFactura(folioStr, imgData);
 
@@ -273,7 +272,7 @@ async function generarImagenFactura() {
   if (!blob) return;
 
   dataURLActual = canvas.toDataURL('image/png');
-  imagenEmitidaConfirmada = false; // Aún no confirmado
+  imagenEmitidaConfirmada = false;
 
   const folioActualVisual = folioInput ? folioInput.value : 'A0000000001';
   const nombre = `Factura_${folioActualVisual}.png`;
@@ -357,10 +356,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCompartir) {
     btnCompartir.addEventListener('click', () => {
       if (!archivoActual) return;
-      confirmarEmisionImagenSiNoConfirmada();
+      const folioConsolidado = confirmarEmisionImagenSiNoConfirmada();
 
       if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
-        navigator.share({ title: 'Factura AHRCO', files: [archivoActual] })
+        navigator.share({ title: `Factura AHRCO ${folioConsolidado}`, files: [archivoActual] })
           .then(() => cerrarModal())
           .catch(() => {});
       } else {
@@ -375,22 +374,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!archivoActual || !dataURLActual) return;
       const folioConsolidado = confirmarEmisionImagenSiNoConfirmada();
 
-      if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
-        navigator.share({
-          title: `Guardar Factura ${folioConsolidado}`,
-          files: [archivoActual]
-        })
-        .then(() => cerrarModal())
-        .catch(() => {});
-      } else {
-        const enlace = document.createElement('a');
-        enlace.href = dataURLActual;
-        enlace.download = archivoActual ? archivoActual.name : `Factura_${folioConsolidado}.png`;
-        document.body.appendChild(enlace);
-        enlace.click();
-        enlace.remove();
-        cerrarModal();
-      }
+      // Forzar descarga directa sin pasar por el selector nativo de compartir
+      const enlace = document.createElement('a');
+      enlace.href = dataURLActual;
+      enlace.download = `Factura_${folioConsolidado}.png`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      cerrarModal();
     });
   }
 });
