@@ -5,6 +5,13 @@ input, textarea {
   padding-bottom: 2px;
 }
 
+/* Evita zoom automático en iOS en campos de texto pequeños */
+@media screen and (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]), textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Renglones del Cuaderno Dinámicos (Permite hasta 20 Renglones) */
 .notebook-area {
   background-image: repeating-linear-gradient(
@@ -79,17 +86,15 @@ canvas {
   .page-container {
     box-shadow: none !important;
     border: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 800px !important;
+    max-width: 800px !important;
     padding: 0.2in !important;
     box-sizing: border-box !important;
     page-break-after: avoid !important;
     page-break-before: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    
-    transform: scale(0.78) !important;
-    transform-origin: top center !important;
+    transform: none !important;
   }
 
   input, textarea {
