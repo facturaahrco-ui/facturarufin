@@ -2,14 +2,52 @@ const textarea = document.getElementById('notebook');
 const folioInput = document.getElementById('folio-number');
 const dateInput = document.getElementById('invoice-date');
 const clientNameInput = document.getElementById('client-name');
+const phoneInput = document.getElementById('client-phone');
+const totalInput = document.getElementById('invoice-total');
 
 let archivoActual = null;
 let urlActual = null;
+let dataURLActual = null;
+
+// AUTO-FORMATO PARA TELÉFONOS DE ESTADOS UNIDOS: (XXX) XXX-XXXX
+if (phoneInput) {
+  phoneInput.addEventListener('input', (e) => {
+    let input = e.target.value.replace(/\D/g, '');
+    if (input.length > 10) input = input.substring(0, 10);
+    
+    let formatted = '';
+    if (input.length > 0) {
+      formatted = '(' + input.substring(0, 3);
+    }
+    if (input.length >= 4) {
+      formatted += ') ' + input.substring(3, 6);
+    }
+    if (input.length >= 7) {
+      formatted += '-' + input.substring(6, 10);
+    }
+    e.target.value = formatted;
+  });
+}
+
+// AUTO-FORMATO PARA MONTO TOTAL FINANCIERO
+if (totalInput) {
+  totalInput.addEventListener('input', (e) => {
+    let value = e.target.value.replace(/[^0-9.]/g, '');
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    if (parts[1] && parts[1].length > 2) {
+      value = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    e.target.value = value;
+  });
+}
 
 function getNextFolio() {
   let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
   const formattedFolio = 'A' + String(currentFolioNum).padStart(10, '0');
-  if (folioInput) {
+  if (folioInput && !folioInput.value) {
     folioInput.value = formattedFolio;
   }
 }
@@ -31,16 +69,12 @@ function setTodayDate() {
   }
 }
 
-// Procesa la captura limpia del elemento html2canvas
 function obtenerCapturaCanvas() {
   const elemento = document.getElementById('factura-card');
   const clearBtn = document.getElementById('clear-signature');
   if (!elemento) return Promise.resolve(null);
 
   if (clearBtn) clearBtn.style.display = 'none';
-
-  const paddingOriginal = elemento.style.paddingBottom;
-  elemento.style.paddingBottom = '24px';
 
   const inputs = elemento.querySelectorAll('input, textarea');
   const reemplazos = [];
@@ -50,7 +84,7 @@ function obtenerCapturaCanvas() {
     if (input.tagName.toLowerCase() === 'textarea') {
       span.className = input.className;
       span.style.whiteSpace = 'pre-wrap';
-      span.style.minHeight = input.offsetHeight + 'px';
+      span.style.height = input.offsetHeight + 'px';
       span.style.lineHeight = '28px';
       span.style.paddingTop = '1px';
       span.textContent = input.value;
@@ -69,8 +103,9 @@ function obtenerCapturaCanvas() {
   return html2canvas(elemento, { 
     scale: 2, 
     useCORS: true,
-    scrollY: -window.scrollY,
-    windowWidth: document.documentElement.offsetWidth
+    width: 800,
+    windowWidth: 800,
+    scrollY: -window.scrollY
   }).then(canvas => {
     reemplazos.forEach(item => {
       item.span.remove();
@@ -78,7 +113,6 @@ function obtenerCapturaCanvas() {
     });
 
     if (clearBtn) clearBtn.style.display = '';
-    elemento.style.paddingBottom = paddingOriginal;
 
     return canvas;
   });
@@ -90,11 +124,16 @@ function registrarEmisionFactura(imagenDataURL = '') {
   const fecha = dateInput ? dateInput.value : '';
 
   let historial = JSON.parse(localStorage.getItem('ahrco_historial')) || [];
-  historial.unshift({ folio, cliente, fecha, imagen: imagenDataURL });
-  localStorage.setItem('ahrco_historial', JSON.stringify(historial));
+  const indexExistente = historial.findIndex(item => item.folio === folio);
 
-  incrementFolio();
-  getNextFolio();
+  if (indexExistente !== -1) {
+    historial[indexExistente] = { folio, cliente, fecha, imagen: imagenDataURL };
+  } else {
+    historial.unshift({ folio, cliente, fecha, imagen: imagenDataURL });
+    incrementFolio();
+  }
+
+  localStorage.setItem('ahrco_historial', JSON.stringify(historial));
   renderHistorial();
 }
 
@@ -103,15 +142,11 @@ function imprimirFactura() {
 }
 
 window.addEventListener('afterprint', () => {
-  const seImprimio = confirm("¿Se completó la impresión / PDF de la factura correctamente?");
-  if (seImprimio) {
-    obtenerCapturaCanvas().then(canvas => {
-      if (canvas) registrarEmisionFactura(canvas.toDataURL('image/png'));
-    });
-  }
+  obtenerCapturaCanvas().then(canvas => {
+    if (canvas) registrarEmisionFactura(canvas.toDataURL('image/png'));
+  });
 });
 
-// GENERACIÓN DE IMAGEN CON VISTA PREVIA FLOTANTE (COMPATIBLE CON IPHONE Y ANDROID)
 async function generarImagenFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
@@ -123,6 +158,7 @@ async function generarImagenFactura() {
   if (!blob) return;
 
   archivoActual = new File([blob], nombre, { type: 'image/png' });
+  dataURLActual = canvas.toDataURL('image/png');
 
   if (urlActual) URL.revokeObjectURL(urlActual);
   urlActual = URL.createObjectURL(blob);
@@ -135,11 +171,39 @@ async function generarImagenFactura() {
     overlay.classList.remove('hidden');
   }
 
-  // Registrar emisión en historial al generar
-  registrarEmisionFactura(canvas.toDataURL('image/png'));
+  registrarEmisionFactura(dataURLActual);
 }
 
-// BOTONES DEL MODAL DE VISTA PREVIA
+function nuevaFactura() {
+  if (confirm("¿Deseas limpiar los datos y comenzar una nueva factura?")) {
+    let currentFolioNum = parseInt(localStorage.getItem('ahrco_folio_num'), 10) || 1;
+    if (folioInput) {
+      folioInput.value = 'A' + String(currentFolioNum).padStart(10, '0');
+    }
+    
+    if (clientNameInput) clientNameInput.value = '';
+    const addressInput = document.getElementById('client-address');
+    if (addressInput) addressInput.value = '';
+    const addressInput2 = document.getElementById('client-address-2');
+    if (addressInput2) addressInput2.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (totalInput) totalInput.value = '';
+
+    if (textarea) {
+      textarea.value = '\n'.repeat(14);
+      adjustHeight();
+    }
+
+    const canvas = document.getElementById('signature-pad');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    setTodayDate();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const btnGuardar = document.getElementById('btn-guardar-fotos');
   const btnCompartir = document.getElementById('btn-compartir-wa');
@@ -154,20 +218,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCerrar1) btnCerrar1.addEventListener('click', cerrarModal);
   if (btnCerrar2) btnCerrar2.addEventListener('click', cerrarModal);
 
-  // BOTÓN COMPARTIR
   if (btnCompartir) {
     btnCompartir.addEventListener('click', () => {
       if (!archivoActual) return;
 
       if (navigator.canShare && navigator.canShare({ files: [archivoActual] })) {
-        navigator.share({ title: 'Factura AHRCO', files: [archivoActual] }).catch(() => {});
+        navigator.share({ title: 'Factura AHRCO', files: [archivoActual] })
+          .then(() => {
+            cerrarModal();
+          })
+          .catch(() => {});
       } else {
         alert("Tu navegador no permite compartir archivos directamente. Usa 'Guardar en Fotos' y luego adjúntala en WhatsApp.");
+        cerrarModal();
       }
     });
   }
 
-  // BOTÓN GUARDAR EN FOTOS
   if (btnGuardar) {
     btnGuardar.addEventListener('click', () => {
       if (!urlActual) return;
@@ -184,6 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
         enlace.click();
         enlace.remove();
       }
+
+      cerrarModal();
     });
   }
 });
@@ -282,9 +351,7 @@ function limpiarHistorial() {
 
 function adjustHeight() {
   if (!textarea) return;
-  textarea.style.height = 'auto';
-  const baseHeight = 420;
-  textarea.style.height = Math.max(baseHeight, textarea.scrollHeight) + 'px';
+  textarea.style.height = '392px'; // Mantiene exactamente 14 renglones estándar sin estirar el contenedor en PDF o captura
 }
 
 if (textarea) {
@@ -297,7 +364,7 @@ window.addEventListener('load', () => {
 
   if (textarea) {
     if (!textarea.value) {
-      textarea.value = '\n'.repeat(15);
+      textarea.value = '\n'.repeat(14);
     }
     adjustHeight();
   }
