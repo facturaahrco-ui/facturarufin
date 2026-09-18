@@ -203,13 +203,13 @@ function registrarEmisionFactura(imagenDataURL = '') {
   renderHistorial();
 }
 
-// PDF LIMPIO USANDO JSPDF CON LA IMAGEN EXACTA DEL CANVAS
+// PDF AJUSTADO A 1 SOLA PÁGINA EXACTA Y MULTIPLATAFORMA SEGURO
 async function imprimirFactura() {
   const canvas = await obtenerCapturaCanvas();
   if (!canvas) return;
 
   const folioStr = folioInput ? folioInput.value : 'A0000000001';
-  const imgData = canvas.toDataURL('image/png');
+  const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
   registrarEmisionFactura(imgData);
 
@@ -222,14 +222,30 @@ async function imprimirFactura() {
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'in',
-    format: 'letter'
+    format: 'letter' // 8.5 x 11 pulgadas
   });
 
-  const imgProps = pdf.getImageProperties(imgData);
-  const pdfWidth = 8.0; 
-  const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  const pageWidth = 8.5;
+  const pageHeight = 11.0;
+  const margin = 0.25;
+  
+  const availWidth = pageWidth - (margin * 2);
+  const availHeight = pageHeight - (margin * 2);
 
-  pdf.addImage(imgData, 'PNG', 0.25, 0.25, pdfWidth, pdfHeight);
+  const imgProps = pdf.getImageProperties(imgData);
+  let pdfWidth = availWidth;
+  let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+  // Si sobrepasa la altura útil de una sola página, reescalar al alto máximo permitido
+  if (pdfHeight > availHeight) {
+    pdfHeight = availHeight;
+    pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+  }
+
+  const xOffset = margin + (availWidth - pdfWidth) / 2;
+  const yOffset = margin;
+
+  pdf.addImage(imgData, 'JPEG', xOffset, yOffset, pdfWidth, pdfHeight);
   pdf.save(`Factura_${folioStr}.pdf`);
 }
 
