@@ -22,28 +22,14 @@
     <span class="font-medium text-gray-700">Factura Electrónica AHRCO</span>
     
     <div class="flex items-center gap-2 flex-wrap">
-      <button onclick="nuevaFactura()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        Nueva Factura
-      </button>
-
-      <button onclick="generarImagenFactura()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-        Generar / Compartir
-      </button>
-
-      <button onclick="imprimirFactura()" class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
+      <button onclick="imprimirFactura()" class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
         </svg>
         Descargar PDF / Imprimir
       </button>
 
-      <button onclick="abrirHistorial()" class="bg-gray-800 hover:bg-black text-white font-semibold py-2 px-3 sm:px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
+      <button onclick="abrirHistorial()" class="bg-gray-800 hover:bg-black text-white font-semibold py-2 px-4 rounded shadow transition-colors duration-200 flex items-center gap-2 text-sm">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
@@ -163,32 +149,6 @@
     </div>
   </div>
 
-  <!-- VISTA PREVIA -->
-  <div id="preview-overlay" class="no-print fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-      <div class="bg-gray-900 text-white p-4 flex justify-between items-center">
-        <h3 class="font-bold text-base">Vista Previa de Factura</h3>
-        <button id="btn-cerrar-preview" class="text-gray-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
-      </div>
-      
-      <div class="p-4 overflow-y-auto flex-1 bg-gray-100 flex justify-center">
-        <img id="preview-img" alt="Factura generada" class="max-w-full h-auto border shadow bg-white rounded" />
-      </div>
-
-      <div class="p-4 bg-gray-50 border-t flex flex-wrap justify-center gap-3">
-        <button id="btn-guardar-fotos" class="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded shadow text-sm flex items-center gap-2">
-          💾 Guardar en Fotos
-        </button>
-        <button id="btn-compartir-wa" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow text-sm flex items-center gap-2">
-          📲 Compartir por WhatsApp
-        </button>
-        <button id="btn-cerrar-preview-2" class="bg-gray-700 hover:bg-gray-800 text-white font-semibold px-4 py-2 rounded shadow text-sm">
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- HISTORIAL -->
   <div id="modal-historial" class="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[85vh]">
@@ -233,28 +193,61 @@
     </div>
   </div>
 
-  <!-- VISOR HISTORIAL -->
-  <div id="modal-visor-factura" class="no-print fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-3xl rounded-xl shadow-2xl border border-gray-300 overflow-hidden flex flex-col max-h-[90vh]">
-      
+  <!-- MODAL VISOR DE FACTURA GUARDADA -->
+  <div id="modal-visor-factura" class="no-print fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-[800px] rounded-xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center bg-gray-900 text-white p-4">
-        <h3 id="visor-titulo" class="text-base font-bold">Detalle de la Factura</h3>
+        <h2 class="text-lg font-bold">📄 Vista Previa de Factura</h2>
         <button onclick="cerrarVisorFactura()" class="text-gray-400 hover:text-white text-2xl font-bold leading-none">&times;</button>
       </div>
-
-      <div class="p-4 overflow-y-auto flex-1 bg-gray-100 flex justify-center">
-        <img id="visor-imagen" src="" alt="Captura de Factura" class="max-w-full h-auto shadow-md border rounded bg-white" />
+      <div class="p-6 overflow-y-auto flex-1 bg-gray-100 flex justify-center">
+        <div class="bg-white shadow-lg p-8 w-[800px] border border-gray-300 text-gray-900 font-sans flex flex-col justify-between">
+          <div>
+            <header class="border-b-2 border-black pb-3 mb-4">
+              <div class="flex justify-between items-start">
+                <div class="flex flex-col items-start">
+                  <span class="text-xl font-black">AHRCO</span>
+                  <span class="text-xs font-bold mt-1 text-gray-800 tracking-wide">CSLB # 8828886</span>
+                </div>
+                <div class="text-right flex flex-col items-end gap-1">
+                  <div class="text-red-700 font-extrabold text-base tracking-wider">
+                    NO. <span id="visor-folio-number"></span>
+                  </div>
+                  <span class="text-lg font-bold italic border-b-2 border-black pb-0.5 inline-block mt-1">Experience Since 1985</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center mt-3 text-sm font-semibold">
+                <span>5951 Cherry Ave. Long Beach, CA 90805</span>
+                <span class="text-red-700 font-bold">(562) 422-1183</span>
+              </div>
+            </header>
+            <section class="grid grid-cols-12 gap-y-3 gap-x-4 mb-4 text-sm font-semibold">
+              <div class="col-span-7 flex"><strong>ADDRESS:</strong> <span id="visor-client-address" class="ml-2 font-normal"></span></div>
+              <div class="col-span-5 flex"><strong>NAME:</strong> <span id="visor-client-name" class="ml-2 font-normal"></span></div>
+              <div class="col-span-7 flex"><span id="visor-client-address-2" class="font-normal"></span></div>
+              <div class="col-span-5 flex"><strong>PHONE:</strong> <span id="visor-client-phone" class="ml-2 font-normal"></span></div>
+            </section>
+            <section class="relative mb-2">
+              <div id="visor-notebook" class="notebook-area w-full font-mono text-gray-800 leading-[28px] text-base whitespace-pre-wrap p-2 border border-gray-200"></div>
+            </section>
+          </div>
+          <div>
+            <div class="flex justify-end mb-3">
+              <div class="flex items-center border-2 border-black rounded px-3 py-1 bg-gray-50">
+                <span class="font-bold text-base mr-3">TOTAL:</span>
+                <span class="font-bold text-base mr-1">$</span>
+                <span id="visor-invoice-total" class="font-bold text-base"></span>
+              </div>
+            </div>
+            <footer class="mt-4 flex justify-between items-end text-sm font-semibold">
+              <div><strong>DATE:</strong> <span id="visor-invoice-date" class="font-normal"></span></div>
+            </footer>
+          </div>
+        </div>
       </div>
-
-      <div class="bg-gray-50 p-4 border-t flex justify-between items-center">
-        <a id="visor-descargar" href="#" download="" class="bg-emerald-700 hover:bg-emerald-800 text-white text-sm font-semibold px-4 py-2 rounded shadow flex items-center gap-2">
-          📥 Descargar Captura
-        </a>
-        <button onclick="cerrarVisorFactura()" class="bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold px-5 py-2 rounded shadow">
-          Cerrar
-        </button>
+      <div class="bg-gray-50 p-4 border-t flex justify-end">
+        <button onclick="cerrarVisorFactura()" class="bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold px-5 py-2 rounded shadow">Cerrar</button>
       </div>
-
     </div>
   </div>
 

@@ -1,6 +1,5 @@
-/* FORZAR TEXTO EN MAYÚSCULAS DE FORMA GLOBAL */
+/* SIN mayúsculas forzadas globales (teclado libre) */
 input, textarea {
-  text-transform: uppercase !important;
   font-size: 16px !important;
   padding-bottom: 2px;
 }
@@ -12,7 +11,7 @@ input, textarea {
   }
 }
 
-/* Renglones del Cuaderno Dinámicos (Permite hasta 20 Renglones) */
+/* Renglones del Cuaderno Dinámicos sin saltos extraños de cursor */
 .notebook-area {
   background-image: repeating-linear-gradient(
     transparent,
@@ -25,10 +24,10 @@ input, textarea {
   background-attachment: local;
   padding-top: 1px;
   border: none;
-  overflow: hidden;
-  min-height: 336px; /* 12 renglones iniciales */
+  overflow-y: hidden;
+  min-height: 364px; /* 13 renglones iniciales */
   max-height: 560px; /* Límite máximo de 20 renglones */
-  transition: height 0.15s ease-out;
+  resize: none;
 }
 
 /* Previene desbordamiento de texto */
@@ -100,10 +99,10 @@ canvas {
   input, textarea {
     border-color: #000 !important;
     background: transparent !important;
-    text-transform: uppercase !important;
   }
 
   .notebook-area {
     max-height: 560px !important;
+    overflow: visible !important;
   }
 }
