@@ -112,12 +112,28 @@ function adjustHeight() {
   ultimoValido = textarea.value;
 }
 
+// Si lo escrito/pegado pasa de 20 renglones, se recorta solo lo nuevo que sobra; lo que ya estaba no se toca
+function recortarAlLimite(nuevo, viejo) {
+  let i = 0;
+  while (i < viejo.length && i < nuevo.length && viejo[i] === nuevo[i]) i++;
+  let j = 0;
+  while (j < viejo.length - i && j < nuevo.length - i && viejo[viejo.length - 1 - j] === nuevo[nuevo.length - 1 - j]) j++;
+  const pre = nuevo.slice(0, i), ins = nuevo.slice(i, nuevo.length - j), suf = nuevo.slice(nuevo.length - j);
+  let lo = 0, hi = ins.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (lineasUsadas(pre + ins.slice(0, mid) + suf) <= MAX_LINES) lo = mid; else hi = mid - 1;
+  }
+  if (lo === 0) return { texto: viejo, pos: Math.min(i, viejo.length) };
+  return { texto: pre + ins.slice(0, lo) + suf, pos: pre.length + lo };
+}
+
 if (textarea) {
   textarea.addEventListener('input', () => {
     if (lineasUsadas(textarea.value) > MAX_LINES) {
-      const pos = Math.max(0, textarea.selectionStart - (textarea.value.length - ultimoValido.length));
-      textarea.value = ultimoValido;
-      textarea.setSelectionRange(pos, pos);
+      const r = recortarAlLimite(textarea.value, ultimoValido);
+      textarea.value = r.texto;
+      textarea.setSelectionRange(r.pos, r.pos);
     }
     adjustHeight();
     guardarBorradorActual();
@@ -270,7 +286,10 @@ function armarClon(doc, snap, firma) {
     d.style.display = 'block';
     d.style.whiteSpace = 'nowrap';
     d.style.overflow = 'hidden';
-    d.textContent = snap[campos[id]] || '';
+    const txt = doc.createElement('span');
+    txt.style.cssText = 'position:relative;top:-4px;';
+    txt.textContent = snap[campos[id]] || '';
+    d.appendChild(txt);
     inp.replaceWith(d);
   });
 
@@ -283,8 +302,11 @@ function armarClon(doc, snap, firma) {
     cont.style.cssText = `width:100%;height:${total * LINE_H}px;overflow:hidden;`;
     for (let i = 0; i < total; i++) {
       const r = doc.createElement('div');
-      r.style.cssText = `height:${LINE_H}px;box-sizing:border-box;padding-top:1px;line-height:${LINE_H}px;white-space:pre;overflow:hidden;border-bottom:1px solid #94a3b8;font-family:${cs.fontFamily};font-size:${cs.fontSize};color:${cs.color};letter-spacing:${cs.letterSpacing};`;
-      r.textContent = renglones[i] || '';
+      r.style.cssText = `height:${LINE_H}px;box-sizing:border-box;padding-top:1px;line-height:${LINE_H}px;white-space:pre;border-bottom:1px solid #94a3b8;font-family:${cs.fontFamily};font-size:${cs.fontSize};color:${cs.color};letter-spacing:${cs.letterSpacing};`;
+      const t = doc.createElement('span');
+      t.style.cssText = 'position:relative;top:-6px;';
+      t.textContent = renglones[i] || '';
+      r.appendChild(t);
       cont.appendChild(r);
     }
     nb.replaceWith(cont);
@@ -505,6 +527,8 @@ function verFacturaHistorial(index) {
     visorNotebook.style.maxHeight = 'none';
     visorNotebook.style.overflow = 'visible';
     visorNotebook.style.minHeight = (MIN_LINES * LINE_H + 18) + 'px';
+    const hoja = visorNotebook.closest('.bg-white');
+    if (hoja) { hoja.style.alignSelf = 'flex-start'; hoja.style.flexShrink = '0'; hoja.style.height = 'auto'; }
   }
 
   let firmaImg = document.getElementById('visor-firma');
