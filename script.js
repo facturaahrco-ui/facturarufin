@@ -286,6 +286,12 @@ function armarClon(doc, snap, firma) {
     d.style.display = 'block';
     d.style.whiteSpace = 'nowrap';
     d.style.overflow = 'hidden';
+    if (id === 'folio-number') {          // el folio se ensancha si el número ocupa más en ese dispositivo (no se corta)
+      d.style.width = 'auto';
+      d.style.minWidth = cs.width;
+      d.style.flexShrink = '0';
+      d.style.overflow = 'visible';
+    }
     const txt = doc.createElement('span');
     txt.style.cssText = 'position:relative;top:-4px;';
     txt.textContent = snap[campos[id]] || '';
